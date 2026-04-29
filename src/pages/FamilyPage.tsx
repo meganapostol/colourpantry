@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { FixedSizeGrid as Grid } from "react-window";
 import {
   generateFamilyWaffle,
   getFamilyById,
@@ -9,9 +8,9 @@ import {
 import { useStash } from "../state/StashContext";
 import { hideHexTooltip, showHexTooltip } from "../components/HexTooltip";
 
-const SWATCH = 40;
 const GAP = 6;
-const PITCH = SWATCH + GAP;
+const MIN_CELL = 24;
+const MAX_CELL = 64;
 
 export function FamilyPage() {
   const { familyId = "" } = useParams();
@@ -23,7 +22,6 @@ export function FamilyPage() {
     () => (family ? maxChromaForFamily(family.centerHue) : 0.3),
     [family],
   );
-  // Default to ~40% of max chroma so most cells render in-gamut
   const [chromaLevel, setChromaLevel] = useState(() => Math.min(maxC * 0.4, 0.1));
 
   const waffle = useMemo(
@@ -31,7 +29,6 @@ export function FamilyPage() {
     [family, chromaLevel],
   );
 
-  // Measure available space for the grid so it never causes page scroll
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 800, h: 500 });
   useEffect(() => {
@@ -58,11 +55,21 @@ export function FamilyPage() {
   const rows = waffle.length;
   const cols = waffle[0]?.length ?? 0;
 
+  // Compute optimal cell size so the entire waffle fits without scroll,
+  // but never below MIN_CELL or above MAX_CELL.
+  const cellByWidth = cols > 0 ? (size.w - GAP) / cols - GAP : MIN_CELL;
+  const cellByHeight = rows > 0 ? (size.h - GAP) / rows - GAP : MIN_CELL;
+  const cell = Math.max(
+    MIN_CELL,
+    Math.min(MAX_CELL, Math.floor(Math.min(cellByWidth, cellByHeight))),
+  );
+  const gridW = cols * (cell + GAP) + GAP;
+  const gridH = rows * (cell + GAP) + GAP;
+
   return (
-    <div className="canvas-grain h-full flex flex-col px-6 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
-      {/* Compact header strip */}
-      <div className="flex items-center justify-between gap-4 pb-3 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+    <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
+      <div className="flex items-center justify-between gap-3 pb-2 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <Link
             to="/"
             className="text-[12px] text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark transition-colors shrink-0"
@@ -71,21 +78,20 @@ export function FamilyPage() {
           </Link>
           <span className="text-muted-light dark:text-muted-dark shrink-0">/</span>
           <div
-            className="w-8 h-8 rounded shrink-0 shadow-soft"
+            className="w-7 h-7 rounded shrink-0"
             style={{ background: family.representativeHex }}
             aria-hidden
           />
-          <h1 className="font-display font-medium text-2xl tracking-tight text-ink-light dark:text-ink-dark leading-none truncate">
+          <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none truncate">
             {family.name}
           </h1>
-          <span className="text-[12px] text-muted-light dark:text-muted-dark hidden md:inline shrink-0">
-            hue {family.centerHue}° ± 7.5° · {cols}×{rows}
+          <span className="text-[11px] text-muted-light dark:text-muted-dark hidden md:inline shrink-0">
+            {family.centerHue}° ± 7.5° · {cols}×{rows}
           </span>
         </div>
       </div>
 
-      {/* Horizontal control bar */}
-      <div className="flex items-center gap-4 pb-3 shrink-0 rounded-xl bg-surface-light dark:bg-surface-dark border border-line-light dark:border-line-dark px-4 py-2.5">
+      <div className="flex items-center gap-3 pb-2 shrink-0 rounded-lg bg-surface-light dark:bg-surface-dark border border-line-light dark:border-line-dark px-3 py-1.5">
         <span className="eyebrow text-muted-light dark:text-muted-dark text-[10px] shrink-0">
           Chroma
         </span>
@@ -100,59 +106,61 @@ export function FamilyPage() {
           aria-label="Chroma level"
           style={{ color: family.representativeHex }}
         />
-        <span className="text-[11px] font-mono text-muted-light dark:text-muted-dark tabular-nums shrink-0 w-28 text-right">
+        <span className="text-[11px] font-mono text-muted-light dark:text-muted-dark tabular-nums shrink-0 w-24 text-right">
           {chromaLevel.toFixed(3)} / {maxC.toFixed(3)}
         </span>
       </div>
 
-      {/* Waffle — fills remaining viewport */}
       <div
         ref={wrapRef}
-        className="flex-1 min-h-0 rounded-xl bg-surface-light dark:bg-surface-dark border border-line-light dark:border-line-dark p-2 overflow-hidden"
+        className="flex-1 min-h-0 rounded-lg overflow-hidden flex items-center justify-center"
       >
-        {size.w > 0 && (
-          <Grid
-            columnCount={cols}
-            rowCount={rows}
-            columnWidth={PITCH}
-            rowHeight={PITCH}
-            width={size.w - 16}
-            height={size.h - 16}
+        {size.w > 0 && cols > 0 && rows > 0 && (
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, ${cell}px)`,
+              gridTemplateRows: `repeat(${rows}, ${cell}px)`,
+              gap: `${GAP}px`,
+              width: gridW - GAP,
+              height: gridH - GAP,
+            }}
           >
-            {({ columnIndex, rowIndex, style }) => {
-              const cell = waffle[rowIndex][columnIndex];
-              if (!cell.hex) {
-                return <div style={style} aria-hidden />;
-              }
-              const hex = cell.hex.toUpperCase();
-              const isPopping = popping === cell.hex;
-              const isRecent = recentlyAdded === hex;
-              return (
-                <div style={style} className="p-[3px]">
+            {waffle.flatMap((row, rIdx) =>
+              row.map((c, cIdx) => {
+                const key = `${rIdx}-${cIdx}`;
+                if (!c.hex) {
+                  return <div key={key} aria-hidden />;
+                }
+                const hex = c.hex.toUpperCase();
+                const isPopping = popping === c.hex;
+                const isRecent = recentlyAdded === hex;
+                return (
                   <button
-                    className={`w-full h-full rounded-md hover:scale-[1.08] focus-visible:scale-[1.08] focus-visible:outline-none transition-transform ${isPopping ? "swatch-pop" : ""} ${isRecent ? "recent-ring" : ""}`}
-                    style={{ background: cell.hex }}
+                    key={key}
+                    className={`rounded-md hover:scale-[1.08] focus-visible:scale-[1.08] focus-visible:outline-none transition-transform ${isPopping ? "swatch-pop" : ""} ${isRecent ? "recent-ring" : ""}`}
+                    style={{ background: c.hex }}
                     onMouseEnter={(e) => {
                       const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      showHexTooltip(cell.hex, r.left + r.width / 2, r.bottom);
+                      showHexTooltip(c.hex, r.left + r.width / 2, r.bottom);
                     }}
                     onMouseLeave={hideHexTooltip}
                     onFocus={(e) => {
                       const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      showHexTooltip(cell.hex, r.left + r.width / 2, r.bottom);
+                      showHexTooltip(c.hex, r.left + r.width / 2, r.bottom);
                     }}
                     onBlur={hideHexTooltip}
                     onClick={() => {
-                      addSwatch(cell.hex);
-                      setPopping(cell.hex);
+                      addSwatch(c.hex);
+                      setPopping(c.hex);
                       window.setTimeout(() => setPopping(null), 200);
                     }}
                     aria-label={`Add ${hex} to stash`}
                   />
-                </div>
-              );
-            }}
-          </Grid>
+                );
+              }),
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -85,6 +85,7 @@ export function generateFamilyWaffle(
   for (let l = 96; l >= 4; l -= 2) {
     const L = l / 100;
     const row: WaffleCell[] = [];
+    let hasAny = false;
     for (let h = -7; h <= 7; h += 1) {
       const H = (centerHue + h + 360) % 360;
       const col = chroma.oklch(L, chromaLevel, H);
@@ -92,9 +93,10 @@ export function generateFamilyWaffle(
         row.push({ hex: "", L, C: chromaLevel, H });
       } else {
         row.push({ hex: col.hex(), L, C: chromaLevel, H });
+        hasAny = true;
       }
     }
-    rows.push(row);
+    if (hasAny) rows.push(row);
   }
   return rows;
 }
