@@ -77,28 +77,35 @@ export interface WaffleCell {
  * Hue: family center ± 7.5° at 1° steps (15 columns)
  * Lightness: 0–100% at 2% steps (50 rows, but we trim 0% black and 100% white)
  */
-export function generateFamilyWaffle(
+/**
+ * Generate a 2D waffle showing every (lightness × chroma) combination at the
+ * family's center hue. X axis = chroma (0 → maxC), Y axis = lightness
+ * (~95% → ~5%). Out-of-gamut cells are returned with empty hex (caller hides
+ * them, leaving an honest cutoff shape).
+ */
+export function generateFamilyAllChromas(
   centerHue: number,
-  chromaLevel: number,
+  cols: number,
+  rows: number,
+  maxC: number,
 ): WaffleCell[][] {
-  const rows: WaffleCell[][] = [];
-  for (let l = 96; l >= 4; l -= 2) {
-    const L = l / 100;
+  const out: WaffleCell[][] = [];
+  for (let r = 0; r < rows; r++) {
+    const L = 0.95 - (r / Math.max(1, rows - 1)) * 0.9;
     const row: WaffleCell[] = [];
-    let hasAny = false;
-    for (let h = -7; h <= 7; h += 1) {
-      const H = (centerHue + h + 360) % 360;
-      const col = chroma.oklch(L, chromaLevel, H);
-      if (col.clipped()) {
-        row.push({ hex: "", L, C: chromaLevel, H });
-      } else {
-        row.push({ hex: col.hex(), L, C: chromaLevel, H });
-        hasAny = true;
-      }
+    for (let c = 0; c < cols; c++) {
+      const C = (c / Math.max(1, cols - 1)) * maxC;
+      const col = chroma.oklch(L, C, centerHue);
+      row.push({
+        hex: col.clipped() ? "" : col.hex(),
+        L,
+        C,
+        H: centerHue,
+      });
     }
-    if (hasAny) rows.push(row);
+    out.push(row);
   }
-  return rows;
+  return out;
 }
 
 /**
