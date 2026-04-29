@@ -1,15 +1,9 @@
 export function Footer() {
   return (
-    <footer className="border-t border-line-light dark:border-line-dark mt-auto">
-      <div className="max-w-[1400px] mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted-light dark:text-muted-dark">
-        <div className="flex items-center gap-3">
-          <span>colour pantry</span>
-          <span aria-hidden>·</span>
-          <span>free forever</span>
-          <span aria-hidden>·</span>
-          <span>no signup, no backend</span>
-        </div>
-        <div className="flex items-center gap-3">
+    <footer className="border-t border-line-light dark:border-line-dark shrink-0">
+      <div className="max-w-[1600px] mx-auto px-6 py-1.5 flex items-center justify-between gap-3 text-[11px] text-muted-light dark:text-muted-dark">
+        <span>colour pantry · free forever · no signup, no backend</span>
+        <div className="flex items-center gap-2">
           <a
             href="https://github.com/meganapostol/colourpantry"
             target="_blank"

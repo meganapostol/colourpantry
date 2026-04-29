@@ -24,8 +24,8 @@ export function SkinPage() {
   );
 
   return (
-    <div className="canvas-grain min-h-full">
-      <div className="px-6 pt-12 pb-12 max-w-[1400px] mx-auto">
+    <div className="canvas-grain h-full overflow-y-auto scroll-thin">
+      <div className="px-6 pt-8 pb-8 max-w-[1400px] mx-auto">
         <div className="max-w-3xl mb-10">
           <span className="eyebrow text-muted-light dark:text-muted-dark">
             most comprehensive free skin reference online

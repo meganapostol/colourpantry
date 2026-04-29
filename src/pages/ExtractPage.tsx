@@ -54,8 +54,8 @@ export function ExtractPage() {
   };
 
   return (
-    <div className="canvas-grain min-h-full">
-      <div className="px-6 pt-12 pb-16 max-w-4xl mx-auto">
+    <div className="canvas-grain h-full overflow-y-auto scroll-thin">
+      <div className="px-6 pt-8 pb-10 max-w-4xl mx-auto">
         <div className="mb-10">
           <span className="eyebrow text-muted-light dark:text-muted-dark">
             from any image

@@ -20,8 +20,8 @@ export default function App() {
           <div className="h-screen flex flex-col bg-canvas-light dark:bg-canvas-dark text-ink-light dark:text-ink-dark">
             <Header />
             <div className="flex-1 flex min-h-0">
-              <main className="flex-1 overflow-y-auto scroll-thin flex flex-col">
-                <div className="flex-1">
+              <main className="flex-1 flex flex-col min-w-0 min-h-0">
+                <div className="flex-1 min-h-0 overflow-hidden">
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/family/:familyId" element={<FamilyPage />} />

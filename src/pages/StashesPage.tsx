@@ -53,8 +53,8 @@ export function StashesPage() {
   };
 
   return (
-    <div className="canvas-grain min-h-full">
-      <div className="px-6 pt-12 pb-16 max-w-[1400px] mx-auto">
+    <div className="canvas-grain h-full overflow-y-auto scroll-thin">
+      <div className="px-6 pt-8 pb-10 max-w-[1400px] mx-auto">
         <div className="flex items-end justify-between mb-10 gap-4 flex-wrap">
           <div>
             <span className="eyebrow text-muted-light dark:text-muted-dark">
