@@ -77,6 +77,29 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
 
   // Polaroid for reference image (when present)
   if (stash.referenceImage) {
+    // Load to get natural dimensions so the polaroid matches the photo's aspect
+    // ratio — no cropping, no downsampling beyond rasterization scale.
+    const probe = new Image();
+    probe.crossOrigin = "anonymous";
+    probe.src = stash.referenceImage;
+    await new Promise<void>((resolve) => {
+      if (probe.complete && probe.naturalHeight !== 0) return resolve();
+      probe.onload = () => resolve();
+      probe.onerror = () => resolve();
+    });
+
+    const natW = probe.naturalWidth || 800;
+    const natH = probe.naturalHeight || 600;
+    // Poster inner width is 1080 - 96 padding = 984. Cap both axes at 880 and
+    // don't upscale tiny images beyond their natural size.
+    const MAX_DIM = 880;
+    let innerW = Math.min(MAX_DIM, natW);
+    let innerH = Math.round(innerW * (natH / natW));
+    if (innerH > MAX_DIM) {
+      innerH = Math.min(MAX_DIM, natH);
+      innerW = Math.round(innerH * (natW / natH));
+    }
+
     const polaroidWrap = document.createElement("div");
     polaroidWrap.style.display = "flex";
     polaroidWrap.style.justifyContent = "center";
@@ -84,22 +107,22 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
 
     const polaroid = document.createElement("div");
     polaroid.style.background = "#FFFFFF";
-    polaroid.style.padding = "16px 16px 56px 16px";
+    polaroid.style.padding = "20px 20px 64px 20px";
     polaroid.style.boxShadow =
       "0 2px 8px rgba(20, 14, 0, 0.06), 0 12px 32px rgba(20, 14, 0, 0.10)";
     polaroid.style.borderRadius = "2px";
     polaroid.style.position = "relative";
-    polaroid.style.width = "520px";
-    polaroid.style.boxSizing = "border-box";
+    polaroid.style.boxSizing = "content-box";
+    polaroid.style.width = `${innerW}px`;
 
     const img = document.createElement("img");
     img.src = stash.referenceImage;
     img.crossOrigin = "anonymous";
-    img.style.width = "488px";
-    img.style.height = "380px";
-    img.style.objectFit = "cover";
+    img.style.width = `${innerW}px`;
+    img.style.height = `${innerH}px`;
     img.style.display = "block";
     img.style.background = "#f3efe6";
+    // No object-fit — width/height match the natural aspect, so nothing is cropped.
 
     await new Promise<void>((resolve) => {
       if (img.complete && img.naturalHeight !== 0) return resolve();
@@ -111,11 +134,11 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
 
     const caption = document.createElement("div");
     caption.style.position = "absolute";
-    caption.style.bottom = "16px";
-    caption.style.left = "16px";
-    caption.style.right = "16px";
+    caption.style.bottom = "20px";
+    caption.style.left = "20px";
+    caption.style.right = "20px";
     caption.style.textAlign = "center";
-    caption.style.fontSize = "14px";
+    caption.style.fontSize = "16px";
     caption.style.color = "#7A7468";
     caption.style.fontStyle = "italic";
     caption.style.fontFamily = "Jost, ui-sans-serif, system-ui, sans-serif";
