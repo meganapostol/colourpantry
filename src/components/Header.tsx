@@ -36,9 +36,9 @@ export function Header() {
   return (
     <header className="border-b border-line-light dark:border-line-dark bg-canvas-light dark:bg-canvas-dark">
       <div className="flex items-center justify-between px-6 py-3">
-        <NavLink to="/" className="flex items-center gap-1 font-display text-[15px] tracking-[0.18em] leading-none">
+        <NavLink to="/" className="font-display font-medium text-xl leading-none lowercase tracking-tight">
           {letters.map((ch, i) => {
-            if (ch === " ") return <span key={i} className="w-2 inline-block" />;
+            if (ch === " ") return <span key={i}>&nbsp;</span>;
             const color = logoLetterColor(colorIdx, colored.length, theme === "dark");
             colorIdx++;
             return (
@@ -47,7 +47,7 @@ export function Header() {
                 style={{ color }}
                 className="transition-colors"
               >
-                {ch}
+                {ch.toLowerCase()}
               </span>
             );
           })}
