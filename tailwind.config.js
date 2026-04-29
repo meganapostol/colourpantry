@@ -24,7 +24,7 @@ export default {
       },
       fontFamily: {
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Jost", "Avant Garde", "ui-sans-serif", "system-ui", "sans-serif"],
         display: ["Jost", "Avant Garde", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
