@@ -25,6 +25,7 @@ export default {
       fontFamily: {
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Michroma", "Eurostile", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

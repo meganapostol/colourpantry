@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useTheme } from "../state/ThemeContext";
+import chroma from "chroma-js";
 
 const tabs = [
   { to: "/", label: "Home", end: true },
@@ -8,14 +9,48 @@ const tabs = [
   { to: "/bibles", label: "Bibles" },
 ];
 
+const LOGO_TEXT = "COLOUR PANTRY";
+
+function logoLetterColor(index: number, total: number, isDark: boolean): string {
+  // Step through hues evenly across the rainbow.
+  const hue = (index / total) * 360;
+  // Slightly more saturated and brighter on dark, more muted on light.
+  const L = isDark ? 0.78 : 0.62;
+  const C = isDark ? 0.18 : 0.16;
+  let col = chroma.oklch(L, C, hue);
+  if (col.clipped()) {
+    let c = C;
+    while (c > 0 && col.clipped()) {
+      c -= 0.01;
+      col = chroma.oklch(L, c, hue);
+    }
+  }
+  return col.hex();
+}
+
 export function Header() {
   const { theme, toggle } = useTheme();
+  const letters = LOGO_TEXT.split("");
+  const colored = letters.filter((c) => c !== " ");
+  let colorIdx = 0;
   return (
     <header className="border-b border-line-light dark:border-line-dark bg-canvas-light dark:bg-canvas-dark">
       <div className="flex items-center justify-between px-6 py-3">
-        <NavLink to="/" className="flex items-center gap-2">
-          <span className="inline-block w-5 h-5 rounded-sm" style={{ background: "linear-gradient(135deg, #FFD7A1, #B5E2C5, #A4C8FF, #DBA8FF)" }} />
-          <span className="text-ink-light dark:text-ink-dark font-semibold tracking-tight">Colour Pantry</span>
+        <NavLink to="/" className="flex items-center gap-1 font-display text-[15px] tracking-[0.18em] leading-none">
+          {letters.map((ch, i) => {
+            if (ch === " ") return <span key={i} className="w-2 inline-block" />;
+            const color = logoLetterColor(colorIdx, colored.length, theme === "dark");
+            colorIdx++;
+            return (
+              <span
+                key={i}
+                style={{ color }}
+                className="transition-colors"
+              >
+                {ch}
+              </span>
+            );
+          })}
         </NavLink>
 
         <nav className="flex items-center gap-1">
