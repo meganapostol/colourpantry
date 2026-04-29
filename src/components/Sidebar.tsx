@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useStash } from "../state/StashContext";
 import { FOLDERS, type FolderId } from "../lib/db";
-import { exportPDF, exportPNG, exportSVG } from "../lib/exports";
+import { exportJPG, exportPDF, exportPNG, exportSVG } from "../lib/exports";
 
 export function Sidebar() {
   const {
@@ -20,12 +20,16 @@ export function Sidebar() {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur border border-line-light dark:border-line-dark border-r-0 rounded-l-xl px-2 py-3 text-sm text-ink-light dark:text-ink-dark shadow-lift hover:px-2.5 transition-all"
-        aria-label="Open stash sidebar"
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 group flex items-center gap-2 bg-ink-light text-canvas-light dark:bg-ink-dark dark:text-canvas-dark rounded-l-xl pl-3 pr-3.5 py-3 shadow-lift hover:pl-4 transition-all"
+        aria-label="Show stash sidebar"
+        title="Show stash sidebar"
       >
-        <span className="flex flex-col items-center gap-1">
-          <span>◀</span>
-          <span className="text-[10px] font-mono">{stash.swatches.length}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+        <span className="font-medium text-[12px] tracking-tight">stash</span>
+        <span className="text-[10px] font-mono opacity-70 px-1.5 py-0.5 rounded-full bg-canvas-light/20 dark:bg-ink-dark/20">
+          {stash.swatches.length}
         </span>
       </button>
     );
@@ -52,11 +56,14 @@ export function Sidebar() {
           </span>
           <button
             onClick={() => setCollapsed(true)}
-            className="text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark text-sm w-6 h-6 flex items-center justify-center rounded hover:bg-canvas-light dark:hover:bg-canvas-dark"
-            aria-label="Collapse sidebar"
-            title="Collapse"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark transition-colors"
+            aria-label="Hide sidebar"
+            title="Hide sidebar"
           >
-            ▶
+            <span>hide</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
           </button>
         </div>
         <input
@@ -138,13 +145,20 @@ export function Sidebar() {
         >
           {copyAllLabel}
         </button>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           <button
             onClick={() => exportPNG(stash)}
             disabled={stash.swatches.length === 0}
             className="text-[11px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
           >
             PNG
+          </button>
+          <button
+            onClick={() => exportJPG(stash)}
+            disabled={stash.swatches.length === 0}
+            className="text-[11px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+          >
+            JPG
           </button>
           <button
             onClick={() => exportPDF(stash)}

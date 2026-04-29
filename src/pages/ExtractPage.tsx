@@ -2,6 +2,10 @@ import { getPaletteSync } from "colorthief";
 import { useRef, useState } from "react";
 import { nameForHex, readableTextOn } from "../lib/color";
 import { useStash } from "../state/StashContext";
+import {
+  exportExtractPDF,
+  exportExtractRaster,
+} from "../lib/exports";
 
 export function ExtractPage() {
   const { addSwatch, recentlyAdded, showToast } = useStash();
@@ -83,20 +87,48 @@ export function ExtractPage() {
         </div>
         {imgUrl && (
           <div className="flex items-center gap-2 shrink-0">
+            {palette.length > 0 && (
+              <>
+                <span className="eyebrow text-muted-light dark:text-muted-dark text-[10px] hidden md:inline">
+                  Export
+                </span>
+                <div className="flex items-center gap-0.5 bg-surface-light dark:bg-surface-dark border border-line-light dark:border-line-dark rounded-full p-0.5">
+                  <button
+                    onClick={() => exportExtractRaster(imgUrl, palette, "png")}
+                    className="px-3 py-1 text-[12px] font-medium rounded-full text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
+                    title="Export PNG"
+                  >
+                    PNG
+                  </button>
+                  <button
+                    onClick={() => exportExtractRaster(imgUrl, palette, "jpg")}
+                    className="px-3 py-1 text-[12px] font-medium rounded-full text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
+                    title="Export JPG"
+                  >
+                    JPG
+                  </button>
+                  <button
+                    onClick={() => exportExtractPDF(imgUrl, palette)}
+                    className="px-3 py-1 text-[12px] font-medium rounded-full text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
+                    title="Export PDF"
+                  >
+                    PDF
+                  </button>
+                </div>
+                <button
+                  onClick={saveAll}
+                  className="btn-pill bg-ink-light dark:bg-ink-dark text-canvas-light dark:text-canvas-dark hover:opacity-90"
+                >
+                  Save all to stash
+                </button>
+              </>
+            )}
             <button
               onClick={reset}
               className="btn-pill border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-surface-light dark:hover:bg-surface-dark"
             >
               ← New image
             </button>
-            {palette.length > 0 && (
-              <button
-                onClick={saveAll}
-                className="btn-pill bg-ink-light dark:bg-ink-dark text-canvas-light dark:text-canvas-dark hover:opacity-90"
-              >
-                Save all to stash
-              </button>
-            )}
           </div>
         )}
       </div>

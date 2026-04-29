@@ -77,6 +77,49 @@ export function FamilyPage() {
     setZoom(ZOOM_STEPS[next]);
   };
 
+  // Keyboard shortcuts: + zoom in, - zoom out, 0 reset
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        stepZoom(1);
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        stepZoom(-1);
+      } else if (e.key === "0") {
+        e.preventDefault();
+        setZoom(1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom]);
+
+  // Ctrl/Cmd + wheel to zoom continuously, snapping to nearest preset.
+  useEffect(() => {
+    const node = wrapRef.current;
+    if (!node) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const dir = e.deltaY < 0 ? 1 : -1;
+      const idx = ZOOM_STEPS.findIndex((z) => Math.abs(z - zoom) < 0.01);
+      const cur = idx === -1 ? ZOOM_STEPS.indexOf(1) : idx;
+      const next = Math.max(0, Math.min(ZOOM_STEPS.length - 1, cur + dir));
+      setZoom(ZOOM_STEPS[next]);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, [zoom]);
+
   return (
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
       <div className="flex items-center justify-between gap-3 pb-3 shrink-0">
@@ -159,12 +202,16 @@ export function FamilyPage() {
         </div>
 
         {/* Zoom controls — floating bottom-right of the waffle area */}
-        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur border border-line-light dark:border-line-dark rounded-full p-1 shadow-lift">
+        <div
+          className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur border border-line-light dark:border-line-dark rounded-full p-1 shadow-lift"
+          title="Zoom: + / − keys, 0 to reset, or Ctrl+Scroll"
+        >
           <button
             onClick={() => stepZoom(-1)}
             disabled={zoom <= ZOOM_STEPS[0]}
             className="w-7 h-7 rounded-full flex items-center justify-center text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-30 disabled:hover:bg-transparent text-base leading-none"
             aria-label="Zoom out"
+            title="Zoom out (−)"
           >
             −
           </button>
@@ -172,7 +219,7 @@ export function FamilyPage() {
             onClick={() => setZoom(1)}
             className="px-2.5 h-7 rounded-full font-mono text-[11px] tabular-nums text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark min-w-[3.25rem]"
             aria-label="Reset zoom"
-            title="Reset to fit"
+            title="Reset to fit (0)"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -181,6 +228,7 @@ export function FamilyPage() {
             disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
             className="w-7 h-7 rounded-full flex items-center justify-center text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-30 disabled:hover:bg-transparent text-base leading-none"
             aria-label="Zoom in"
+            title="Zoom in (+)"
           >
             +
           </button>

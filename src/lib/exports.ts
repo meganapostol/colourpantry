@@ -3,6 +3,8 @@ import html2canvas from "html2canvas";
 import type { Stash } from "./db";
 import { hexToRgbString, nameForHex, readableTextOn } from "./color";
 
+export type RasterFormat = "png" | "jpg";
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -18,8 +20,34 @@ function safeFilename(name: string): string {
   return name.replace(/[^a-z0-9-_]+/gi, "_").replace(/^_+|_+$/g, "") || "stash";
 }
 
-export async function exportPNG(stash: Stash) {
-  if (stash.swatches.length === 0) return;
+/**
+ * Render a DOM node to a canvas at 2x for crisp output, then ship as PNG or JPG blob.
+ */
+async function rasterize(
+  node: HTMLElement,
+  format: RasterFormat,
+  filename: string,
+) {
+  const canvas = await html2canvas(node, {
+    backgroundColor: "#FAF7F2",
+    scale: 2,
+    useCORS: true,
+  });
+  const mime = format === "jpg" ? "image/jpeg" : "image/png";
+  const ext = format === "jpg" ? "jpg" : "png";
+  await new Promise<void>((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) downloadBlob(blob, `${filename}.${ext}`);
+        resolve();
+      },
+      mime,
+      0.92,
+    );
+  });
+}
+
+function buildStashPoster(stash: Stash): HTMLElement {
   const wrap = document.createElement("div");
   wrap.style.position = "fixed";
   wrap.style.left = "-10000px";
@@ -87,20 +115,22 @@ export async function exportPNG(stash: Stash) {
   wrap.appendChild(meta);
   wrap.appendChild(grid);
   wrap.appendChild(watermark);
-  document.body.appendChild(wrap);
+  return wrap;
+}
 
+export async function exportStashRaster(stash: Stash, format: RasterFormat) {
+  if (stash.swatches.length === 0) return;
+  const node = buildStashPoster(stash);
+  document.body.appendChild(node);
   try {
-    const canvas = await html2canvas(wrap, {
-      backgroundColor: "#FAF7F2",
-      scale: 2,
-    });
-    canvas.toBlob((blob) => {
-      if (blob) downloadBlob(blob, `${safeFilename(stash.name)}.png`);
-    });
+    await rasterize(node, format, safeFilename(stash.name));
   } finally {
-    document.body.removeChild(wrap);
+    document.body.removeChild(node);
   }
 }
+
+export const exportPNG = (stash: Stash) => exportStashRaster(stash, "png");
+export const exportJPG = (stash: Stash) => exportStashRaster(stash, "jpg");
 
 export function exportPDF(stash: Stash) {
   if (stash.swatches.length === 0) return;
@@ -198,6 +228,122 @@ export function exportSVG(stash: Stash) {
   parts.push(`</svg>`);
   const blob = new Blob([parts.join("\n")], { type: "image/svg+xml" });
   downloadBlob(blob, `${safeFilename(stash.name)}.svg`);
+}
+
+/* -------------------- Extract page composition export -------------------- */
+
+async function buildExtractComposition(
+  imgUrl: string,
+  hexes: string[],
+): Promise<HTMLElement> {
+  const wrap = document.createElement("div");
+  wrap.style.position = "fixed";
+  wrap.style.left = "-10000px";
+  wrap.style.top = "0";
+  wrap.style.width = "1200px";
+  wrap.style.background = "#FAF7F2";
+  wrap.style.fontFamily = "Jost, ui-sans-serif, system-ui, sans-serif";
+  wrap.style.boxSizing = "border-box";
+  wrap.style.borderRadius = "12px";
+  wrap.style.overflow = "hidden";
+  wrap.style.border = "1px solid #E8E2D5";
+
+  const imgWrap = document.createElement("div");
+  imgWrap.style.width = "100%";
+  imgWrap.style.height = "720px";
+  imgWrap.style.background = "#f3efe6";
+  imgWrap.style.display = "flex";
+  imgWrap.style.alignItems = "center";
+  imgWrap.style.justifyContent = "center";
+  imgWrap.style.overflow = "hidden";
+
+  const img = document.createElement("img");
+  img.src = imgUrl;
+  img.style.maxWidth = "100%";
+  img.style.maxHeight = "100%";
+  img.style.objectFit = "contain";
+  img.crossOrigin = "anonymous";
+
+  await new Promise<void>((resolve) => {
+    if (img.complete && img.naturalHeight !== 0) return resolve();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+  });
+
+  imgWrap.appendChild(img);
+
+  const strip = document.createElement("div");
+  strip.style.display = "grid";
+  strip.style.gridTemplateColumns = `repeat(${hexes.length}, 1fr)`;
+  strip.style.height = "140px";
+
+  for (const hex of hexes) {
+    const cell = document.createElement("div");
+    cell.style.background = hex;
+    cell.style.padding = "16px";
+    cell.style.display = "flex";
+    cell.style.flexDirection = "column";
+    cell.style.justifyContent = "flex-end";
+    cell.style.color = readableTextOn(hex);
+    cell.style.minWidth = "0";
+
+    const hexLabel = document.createElement("div");
+    hexLabel.style.fontFamily = "ui-monospace, Consolas, monospace";
+    hexLabel.style.fontSize = "14px";
+    hexLabel.style.fontWeight = "600";
+    hexLabel.style.letterSpacing = "-0.01em";
+    hexLabel.textContent = hex.toUpperCase();
+
+    const nameLabel = document.createElement("div");
+    nameLabel.style.fontSize = "11px";
+    nameLabel.style.opacity = "0.85";
+    nameLabel.style.marginTop = "4px";
+    nameLabel.textContent = nameForHex(hex);
+
+    cell.appendChild(hexLabel);
+    cell.appendChild(nameLabel);
+    strip.appendChild(cell);
+  }
+
+  wrap.appendChild(imgWrap);
+  wrap.appendChild(strip);
+  return wrap;
+}
+
+export async function exportExtractRaster(
+  imgUrl: string,
+  hexes: string[],
+  format: RasterFormat,
+) {
+  if (!imgUrl || hexes.length === 0) return;
+  const node = await buildExtractComposition(imgUrl, hexes);
+  document.body.appendChild(node);
+  try {
+    await rasterize(node, format, "extract");
+  } finally {
+    document.body.removeChild(node);
+  }
+}
+
+export async function exportExtractPDF(imgUrl: string, hexes: string[]) {
+  if (!imgUrl || hexes.length === 0) return;
+  const node = await buildExtractComposition(imgUrl, hexes);
+  document.body.appendChild(node);
+  try {
+    const canvas = await html2canvas(node, {
+      backgroundColor: "#FAF7F2",
+      scale: 2,
+      useCORS: true,
+    });
+    const w = canvas.width / 2;
+    const h = canvas.height / 2;
+    const orientation = w > h ? "landscape" : "portrait";
+    const pdf = new jsPDF({ unit: "px", format: [w, h], orientation });
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, w, h);
+    pdf.save("extract.pdf");
+  } finally {
+    document.body.removeChild(node);
+  }
 }
 
 function escapeXml(s: string): string {

@@ -9,7 +9,7 @@ import {
   saveStash,
 } from "../lib/db";
 import { useStash } from "../state/StashContext";
-import { exportPDF, exportPNG, exportSVG } from "../lib/exports";
+import { exportJPG, exportPDF, exportPNG, exportSVG } from "../lib/exports";
 
 export function StashesPage() {
   const { stash: activeStash, loadStash, showToast } = useStash();
@@ -226,6 +226,12 @@ function StashModal({
             className="btn-pill border border-line-light dark:border-line-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
           >
             PNG
+          </button>
+          <button
+            onClick={() => exportJPG(stash)}
+            className="btn-pill border border-line-light dark:border-line-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
+          >
+            JPG
           </button>
           <button
             onClick={() => exportPDF(stash)}
