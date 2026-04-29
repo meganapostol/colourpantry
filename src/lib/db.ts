@@ -15,7 +15,7 @@ export interface Swatch {
   addedAt: number;
 }
 
-export interface Bible {
+export interface Stash {
   id: string;
   name: string;
   folder: FolderId;
@@ -25,9 +25,9 @@ export interface Bible {
 }
 
 interface ColourPantryDB extends DBSchema {
-  bibles: {
+  stashes: {
     key: string;
-    value: Bible;
+    value: Stash;
     indexes: { folder: string; updatedAt: number };
   };
   meta: {
@@ -37,7 +37,7 @@ interface ColourPantryDB extends DBSchema {
 }
 
 const DB_NAME = "colour-pantry";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<ColourPantryDB>> | null = null;
 
@@ -45,14 +45,14 @@ function getDB() {
   if (!dbPromise) {
     dbPromise = openDB<ColourPantryDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        if (!db.objectStoreNames.contains("bibles")) {
-          const store = db.createObjectStore("bibles", { keyPath: "id" });
-          store.createIndex("folder", "folder");
-          store.createIndex("updatedAt", "updatedAt");
+        // Wipe legacy stores on schema bump (pre-launch terminology change)
+        for (const name of Array.from(db.objectStoreNames)) {
+          db.deleteObjectStore(name);
         }
-        if (!db.objectStoreNames.contains("meta")) {
-          db.createObjectStore("meta", { keyPath: "key" });
-        }
+        const store = db.createObjectStore("stashes", { keyPath: "id" });
+        store.createIndex("folder", "folder");
+        store.createIndex("updatedAt", "updatedAt");
+        db.createObjectStore("meta", { keyPath: "key" });
       },
     });
   }
@@ -60,16 +60,14 @@ function getDB() {
 }
 
 export function newId(): string {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
-  );
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 }
 
-export function newBible(folder: FolderId = "personal"): Bible {
+export function newStash(folder: FolderId = "personal"): Stash {
   const now = Date.now();
   return {
     id: newId(),
-    name: "Untitled Bible",
+    name: "Untitled Stash",
     folder,
     swatches: [],
     createdAt: now,
@@ -77,32 +75,32 @@ export function newBible(folder: FolderId = "personal"): Bible {
   };
 }
 
-export async function saveBible(bible: Bible): Promise<void> {
+export async function saveStash(stash: Stash): Promise<void> {
   const db = await getDB();
-  bible.updatedAt = Date.now();
-  await db.put("bibles", bible);
+  stash.updatedAt = Date.now();
+  await db.put("stashes", stash);
 }
 
-export async function getBible(id: string): Promise<Bible | undefined> {
+export async function getStash(id: string): Promise<Stash | undefined> {
   const db = await getDB();
-  return db.get("bibles", id);
+  return db.get("stashes", id);
 }
 
-export async function getAllBibles(): Promise<Bible[]> {
+export async function getAllStashes(): Promise<Stash[]> {
   const db = await getDB();
-  const all = await db.getAll("bibles");
+  const all = await db.getAll("stashes");
   return all.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export async function getBiblesByFolder(folder: FolderId): Promise<Bible[]> {
+export async function getStashesByFolder(folder: FolderId): Promise<Stash[]> {
   const db = await getDB();
-  const all = await db.getAllFromIndex("bibles", "folder", folder);
+  const all = await db.getAllFromIndex("stashes", "folder", folder);
   return all.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export async function deleteBible(id: string): Promise<void> {
+export async function deleteStash(id: string): Promise<void> {
   const db = await getDB();
-  await db.delete("bibles", id);
+  await db.delete("stashes", id);
 }
 
 export async function setMeta(key: string, value: string): Promise<void> {

@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import type { Bible } from "./db";
+import type { Stash } from "./db";
 import { hexToRgbString, nameForHex, readableTextOn } from "./color";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -15,12 +15,11 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 function safeFilename(name: string): string {
-  return name.replace(/[^a-z0-9-_]+/gi, "_").replace(/^_+|_+$/g, "") || "bible";
+  return name.replace(/[^a-z0-9-_]+/gi, "_").replace(/^_+|_+$/g, "") || "stash";
 }
 
-export async function exportPNG(bible: Bible) {
-  if (bible.swatches.length === 0) return;
-  // Build an offscreen poster-style DOM, render, download.
+export async function exportPNG(stash: Stash) {
+  if (stash.swatches.length === 0) return;
   const wrap = document.createElement("div");
   wrap.style.position = "fixed";
   wrap.style.left = "-10000px";
@@ -28,40 +27,41 @@ export async function exportPNG(bible: Bible) {
   wrap.style.width = "1080px";
   wrap.style.padding = "48px";
   wrap.style.background = "#FAF7F2";
-  wrap.style.fontFamily = "Inter, system-ui, sans-serif";
-  wrap.style.color = "#2A2A2A";
+  wrap.style.fontFamily = "Jost, ui-sans-serif, system-ui, sans-serif";
+  wrap.style.color = "#1A1A1A";
   wrap.style.boxSizing = "border-box";
 
   const title = document.createElement("div");
   title.style.fontSize = "32px";
-  title.style.fontWeight = "600";
+  title.style.fontWeight = "500";
+  title.style.letterSpacing = "-0.02em";
   title.style.marginBottom = "8px";
-  title.textContent = bible.name || "Untitled Bible";
+  title.textContent = stash.name || "Untitled Stash";
 
   const meta = document.createElement("div");
   meta.style.fontSize = "14px";
-  meta.style.color = "#6B6B6B";
+  meta.style.color = "#7A7468";
   meta.style.marginBottom = "32px";
-  meta.textContent = `${bible.swatches.length} swatches · ${new Date(bible.updatedAt).toLocaleDateString()}`;
+  meta.textContent = `${stash.swatches.length} swatches · ${new Date(stash.updatedAt).toLocaleDateString()}`;
 
   const grid = document.createElement("div");
   grid.style.display = "grid";
   grid.style.gridTemplateColumns = "repeat(4, 1fr)";
-  grid.style.gap = "16px";
+  grid.style.gap = "8px";
 
-  for (const s of bible.swatches) {
+  for (const s of stash.swatches) {
     const cell = document.createElement("div");
     cell.style.background = s.hex;
-    cell.style.borderRadius = "8px";
+    cell.style.borderRadius = "6px";
     cell.style.padding = "16px";
     cell.style.aspectRatio = "1 / 1";
     cell.style.display = "flex";
     cell.style.flexDirection = "column";
     cell.style.justifyContent = "flex-end";
     cell.style.color = readableTextOn(s.hex);
-    cell.style.fontFamily = "ui-monospace, Consolas, monospace";
 
     const hexLabel = document.createElement("div");
+    hexLabel.style.fontFamily = "ui-monospace, Consolas, monospace";
     hexLabel.style.fontSize = "16px";
     hexLabel.style.fontWeight = "600";
     hexLabel.textContent = s.hex.toUpperCase();
@@ -95,33 +95,31 @@ export async function exportPNG(bible: Bible) {
       scale: 2,
     });
     canvas.toBlob((blob) => {
-      if (blob) downloadBlob(blob, `${safeFilename(bible.name)}.png`);
+      if (blob) downloadBlob(blob, `${safeFilename(stash.name)}.png`);
     });
   } finally {
     document.body.removeChild(wrap);
   }
 }
 
-export function exportPDF(bible: Bible) {
-  if (bible.swatches.length === 0) return;
+export function exportPDF(stash: Stash) {
+  if (stash.swatches.length === 0) return;
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const W = pdf.internal.pageSize.getWidth();
   const H = pdf.internal.pageSize.getHeight();
 
-  // Cover page
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(28);
-  pdf.text(bible.name || "Untitled Bible", W / 2, H / 2 - 20, { align: "center" });
+  pdf.text(stash.name || "Untitled Stash", W / 2, H / 2 - 20, { align: "center" });
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(12);
-  pdf.text(new Date(bible.updatedAt).toLocaleDateString(), W / 2, H / 2 - 8, { align: "center" });
+  pdf.text(new Date(stash.updatedAt).toLocaleDateString(), W / 2, H / 2 - 8, { align: "center" });
   pdf.setFontSize(10);
   pdf.setTextColor(120);
-  pdf.text(`${bible.swatches.length} swatches`, W / 2, H / 2, { align: "center" });
+  pdf.text(`${stash.swatches.length} swatches`, W / 2, H / 2, { align: "center" });
   pdf.setTextColor(160);
   pdf.text("Made with Colour Pantry", W / 2, H - 12, { align: "center" });
 
-  // Swatch pages: 4 per page in a 2x2 grid
   const margin = 18;
   const cellW = (W - margin * 2 - 8) / 2;
   const cellH = (H - margin * 2 - 8) / 2;
@@ -133,7 +131,7 @@ export function exportPDF(bible: Bible) {
     [margin + cellW + 8, margin + cellH + 8],
   ];
 
-  bible.swatches.forEach((s, i) => {
+  stash.swatches.forEach((s, i) => {
     const slot = i % 4;
     if (slot === 0) pdf.addPage();
     const [x, y] = positions[slot];
@@ -142,7 +140,7 @@ export function exportPDF(bible: Bible) {
     const g = parseInt(rgb.slice(2, 4), 16);
     const b = parseInt(rgb.slice(4, 6), 16);
     pdf.setFillColor(r, g, b);
-    pdf.roundedRect(x, y, cellW, cellH * 0.7, 3, 3, "F");
+    pdf.roundedRect(x, y, cellW, cellH * 0.7, 2, 2, "F");
 
     pdf.setTextColor(40);
     pdf.setFont("helvetica", "bold");
@@ -155,17 +153,17 @@ export function exportPDF(bible: Bible) {
     pdf.text(`RGB ${hexToRgbString(s.hex)}`, x, y + cellH * 0.92);
   });
 
-  pdf.save(`${safeFilename(bible.name)}.pdf`);
+  pdf.save(`${safeFilename(stash.name)}.pdf`);
 }
 
-export function exportSVG(bible: Bible) {
-  if (bible.swatches.length === 0) return;
+export function exportSVG(stash: Stash) {
+  if (stash.swatches.length === 0) return;
   const cols = 4;
   const cell = 200;
-  const gap = 12;
+  const gap = 8;
   const padding = 32;
   const titleH = 60;
-  const rows = Math.ceil(bible.swatches.length / cols);
+  const rows = Math.ceil(stash.swatches.length / cols);
   const width = padding * 2 + cols * cell + (cols - 1) * gap;
   const height = padding * 2 + titleH + rows * (cell + 40) + (rows - 1) * gap;
 
@@ -175,31 +173,31 @@ export function exportSVG(bible: Bible) {
   );
   parts.push(`<rect width="${width}" height="${height}" fill="#FAF7F2"/>`);
   parts.push(
-    `<text x="${padding}" y="${padding + 28}" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="600" fill="#2A2A2A">${escapeXml(bible.name || "Untitled Bible")}</text>`,
+    `<text x="${padding}" y="${padding + 28}" font-family="Jost, system-ui, sans-serif" font-size="28" font-weight="500" fill="#1A1A1A">${escapeXml(stash.name || "Untitled Stash")}</text>`,
   );
   parts.push(
-    `<text x="${padding}" y="${padding + 50}" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6B6B6B">${bible.swatches.length} swatches</text>`,
+    `<text x="${padding}" y="${padding + 50}" font-family="Jost, system-ui, sans-serif" font-size="12" fill="#7A7468">${stash.swatches.length} swatches</text>`,
   );
 
-  bible.swatches.forEach((s, i) => {
+  stash.swatches.forEach((s, i) => {
     const c = i % cols;
     const r = Math.floor(i / cols);
     const x = padding + c * (cell + gap);
     const y = padding + titleH + r * (cell + 40 + gap);
     parts.push(
-      `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="8" fill="${s.hex}"/>`,
+      `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="6" fill="${s.hex}"/>`,
     );
     parts.push(
-      `<text x="${x}" y="${y + cell + 22}" font-family="ui-monospace, Consolas, monospace" font-size="14" font-weight="600" fill="#2A2A2A">${s.hex.toUpperCase()}</text>`,
+      `<text x="${x}" y="${y + cell + 22}" font-family="ui-monospace, Consolas, monospace" font-size="14" font-weight="600" fill="#1A1A1A">${s.hex.toUpperCase()}</text>`,
     );
     parts.push(
-      `<text x="${x}" y="${y + cell + 36}" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#6B6B6B">${escapeXml(s.name || nameForHex(s.hex))}</text>`,
+      `<text x="${x}" y="${y + cell + 36}" font-family="Jost, system-ui, sans-serif" font-size="11" fill="#7A7468">${escapeXml(s.name || nameForHex(s.hex))}</text>`,
     );
   });
 
   parts.push(`</svg>`);
   const blob = new Blob([parts.join("\n")], { type: "image/svg+xml" });
-  downloadBlob(blob, `${safeFilename(bible.name)}.svg`);
+  downloadBlob(blob, `${safeFilename(stash.name)}.svg`);
 }
 
 function escapeXml(s: string): string {

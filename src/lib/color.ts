@@ -187,13 +187,9 @@ export const SKIN_ROWS: SkinRow[] = [
     lightAnchor: [0.9, 0.07, 80],
     darkAnchor: [0.28, 0.075, 75],
   },
-  {
-    id: "red-undertone",
-    label: "Red Undertone",
-    lightAnchor: [0.92, 0.05, 22],
-    darkAnchor: [0.28, 0.07, 18],
-  },
 ];
+
+export const ACCENT_GOLD = "#D4A574";
 
 export function generateSkinRowSwatches(row: SkinRow, count = 12): string[] {
   const [l1, c1, h1] = row.lightAnchor;

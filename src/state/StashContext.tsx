@@ -9,51 +9,53 @@ import {
   type ReactNode,
 } from "react";
 import {
-  type Bible,
+  type Stash,
   type FolderId,
   type Swatch,
-  newBible,
-  saveBible,
+  newStash,
+  saveStash,
   getMeta,
   setMeta,
-  getBible,
+  getStash,
 } from "../lib/db";
 import { nameForHex } from "../lib/color";
 
-interface BibleContextValue {
-  bible: Bible;
+interface StashContextValue {
+  stash: Stash;
   setName: (name: string) => void;
   setFolder: (folder: FolderId) => void;
   addSwatch: (hex: string) => void;
   removeSwatch: (hex: string) => void;
   clearSwatches: () => void;
-  startNewBible: () => void;
-  loadBible: (id: string) => Promise<void>;
+  startNewStash: () => void;
+  loadStash: (id: string) => Promise<void>;
   toast: string | null;
   showToast: (msg: string) => void;
+  recentlyAdded: string | null;
 }
 
-const BibleContext = createContext<BibleContextValue | null>(null);
+const StashContext = createContext<StashContextValue | null>(null);
 
-const ACTIVE_BIBLE_KEY = "active-bible-id";
+const ACTIVE_STASH_KEY = "active-stash-id";
 
-export function BibleProvider({ children }: { children: ReactNode }) {
-  const [bible, setBible] = useState<Bible>(() => newBible("personal"));
+export function StashProvider({ children }: { children: ReactNode }) {
+  const [stash, setStash] = useState<Stash>(() => newStash("personal"));
   const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
   const toastTimer = useRef<number | null>(null);
+  const recentTimer = useRef<number | null>(null);
   const saveTimer = useRef<number | null>(null);
 
-  // hydrate from IndexedDB
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const activeId = await getMeta(ACTIVE_BIBLE_KEY);
+        const activeId = await getMeta(ACTIVE_STASH_KEY);
         if (activeId) {
-          const found = await getBible(activeId);
+          const found = await getStash(activeId);
           if (found && !cancelled) {
-            setBible(found);
+            setStash(found);
           }
         }
       } finally {
@@ -65,18 +67,17 @@ export function BibleProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // debounced auto-save on every change after hydration
   useEffect(() => {
     if (!hydrated) return;
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      saveBible(bible);
-      setMeta(ACTIVE_BIBLE_KEY, bible.id);
+      saveStash(stash);
+      setMeta(ACTIVE_STASH_KEY, stash.id);
     }, 200);
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
-  }, [bible, hydrated]);
+  }, [stash, hydrated]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -85,33 +86,35 @@ export function BibleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setName = useCallback((name: string) => {
-    setBible((b) => ({ ...b, name }));
+    setStash((s) => ({ ...s, name }));
   }, []);
 
   const setFolder = useCallback((folder: FolderId) => {
-    setBible((b) => ({ ...b, folder }));
+    setStash((s) => ({ ...s, folder }));
   }, []);
 
   const addSwatch = useCallback(
     (hex: string) => {
       const norm = hex.toUpperCase();
-      setBible((b) => {
-        if (b.swatches.some((s) => s.hex.toUpperCase() === norm)) {
-          return b;
+      setStash((s) => {
+        if (s.swatches.some((sw) => sw.hex.toUpperCase() === norm)) {
+          return s;
         }
         const sw: Swatch = {
           hex: norm,
           name: nameForHex(norm),
           addedAt: Date.now(),
         };
-        return { ...b, swatches: [...b.swatches, sw] };
+        return { ...s, swatches: [...s.swatches, sw] };
       });
-      // Copy to clipboard
       try {
         navigator.clipboard?.writeText(norm);
       } catch {
         /* noop */
       }
+      setRecentlyAdded(norm);
+      if (recentTimer.current) window.clearTimeout(recentTimer.current);
+      recentTimer.current = window.setTimeout(() => setRecentlyAdded(null), 3000);
       showToast(`${norm} copied & saved`);
     },
     [showToast],
@@ -119,57 +122,59 @@ export function BibleProvider({ children }: { children: ReactNode }) {
 
   const removeSwatch = useCallback((hex: string) => {
     const norm = hex.toUpperCase();
-    setBible((b) => ({
-      ...b,
-      swatches: b.swatches.filter((s) => s.hex.toUpperCase() !== norm),
+    setStash((s) => ({
+      ...s,
+      swatches: s.swatches.filter((sw) => sw.hex.toUpperCase() !== norm),
     }));
   }, []);
 
   const clearSwatches = useCallback(() => {
-    setBible((b) => ({ ...b, swatches: [] }));
+    setStash((s) => ({ ...s, swatches: [] }));
   }, []);
 
-  const startNewBible = useCallback(() => {
-    setBible((prev) => newBible(prev.folder));
+  const startNewStash = useCallback(() => {
+    setStash((prev) => newStash(prev.folder));
   }, []);
 
-  const loadBible = useCallback(async (id: string) => {
-    const found = await getBible(id);
-    if (found) setBible(found);
+  const loadStash = useCallback(async (id: string) => {
+    const found = await getStash(id);
+    if (found) setStash(found);
   }, []);
 
-  const value = useMemo<BibleContextValue>(
+  const value = useMemo<StashContextValue>(
     () => ({
-      bible,
+      stash,
       setName,
       setFolder,
       addSwatch,
       removeSwatch,
       clearSwatches,
-      startNewBible,
-      loadBible,
+      startNewStash,
+      loadStash,
       toast,
       showToast,
+      recentlyAdded,
     }),
     [
-      bible,
+      stash,
       setName,
       setFolder,
       addSwatch,
       removeSwatch,
       clearSwatches,
-      startNewBible,
-      loadBible,
+      startNewStash,
+      loadStash,
       toast,
       showToast,
+      recentlyAdded,
     ],
   );
 
-  return <BibleContext.Provider value={value}>{children}</BibleContext.Provider>;
+  return <StashContext.Provider value={value}>{children}</StashContext.Provider>;
 }
 
-export function useBible(): BibleContextValue {
-  const v = useContext(BibleContext);
-  if (!v) throw new Error("useBible must be used inside BibleProvider");
+export function useStash(): StashContextValue {
+  const v = useContext(StashContext);
+  if (!v) throw new Error("useStash must be used inside StashProvider");
   return v;
 }

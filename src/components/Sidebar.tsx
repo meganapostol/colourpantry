@@ -1,18 +1,17 @@
 import { useState } from "react";
-import { useBible } from "../state/BibleContext";
+import { useStash } from "../state/StashContext";
 import { FOLDERS, type FolderId } from "../lib/db";
 import { exportPDF, exportPNG, exportSVG } from "../lib/exports";
-import { readableTextOn } from "../lib/color";
 
 export function Sidebar() {
   const {
-    bible,
+    stash,
     setName,
     setFolder,
     removeSwatch,
     clearSwatches,
-    startNewBible,
-  } = useBible();
+    startNewStash,
+  } = useStash();
   const [collapsed, setCollapsed] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [copyAllLabel, setCopyAllLabel] = useState("Copy All");
@@ -21,16 +20,19 @@ export function Sidebar() {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-white dark:bg-neutral-900 border border-line-light dark:border-line-dark border-r-0 rounded-l-md px-2 py-3 text-sm text-ink-light dark:text-ink-dark shadow-md"
-        aria-label="Open bible sidebar"
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur border border-line-light dark:border-line-dark border-r-0 rounded-l-xl px-2 py-3 text-sm text-ink-light dark:text-ink-dark shadow-lift hover:px-2.5 transition-all"
+        aria-label="Open stash sidebar"
       >
-        ◀ <span className="ml-1">{bible.swatches.length}</span>
+        <span className="flex flex-col items-center gap-1">
+          <span>◀</span>
+          <span className="text-[10px] font-mono">{stash.swatches.length}</span>
+        </span>
       </button>
     );
   }
 
   const onCopyAll = async () => {
-    const text = bible.swatches.map((s) => s.hex).join(", ");
+    const text = stash.swatches.map((s) => s.hex).join(", ");
     try {
       await navigator.clipboard.writeText(text);
       setCopyAllLabel("Copied!");
@@ -42,15 +44,15 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-72 shrink-0 bg-canvas-light dark:bg-neutral-950 border-l border-line-light dark:border-line-dark flex flex-col h-full">
-      <div className="p-4 border-b border-line-light dark:border-line-dark space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wider text-muted-light dark:text-muted-dark">
-            Current Bible
+    <aside className="w-80 shrink-0 bg-surface-light/70 dark:bg-surface-dark/60 backdrop-blur-md border-l border-line-light dark:border-line-dark flex flex-col h-full">
+      <div className="p-5 border-b border-line-light dark:border-line-dark">
+        <div className="flex items-center justify-between mb-3">
+          <span className="eyebrow text-muted-light dark:text-muted-dark">
+            Current Stash
           </span>
           <button
             onClick={() => setCollapsed(true)}
-            className="text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark text-sm"
+            className="text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark text-sm w-6 h-6 flex items-center justify-center rounded hover:bg-canvas-light dark:hover:bg-canvas-dark"
             aria-label="Collapse sidebar"
             title="Collapse"
           >
@@ -58,48 +60,55 @@ export function Sidebar() {
           </button>
         </div>
         <input
-          value={bible.name}
+          value={stash.name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Untitled Bible"
-          className="w-full bg-transparent text-ink-light dark:text-ink-dark text-base font-medium border-b border-transparent focus:border-line-light dark:focus:border-line-dark outline-none py-1"
+          placeholder="Untitled Stash"
+          className="w-full bg-transparent text-ink-light dark:text-ink-dark text-lg font-display font-medium tracking-tight border-b border-transparent focus:border-line-light dark:focus:border-line-dark outline-none py-1 -mx-0.5 px-0.5"
         />
-        <select
-          value={bible.folder}
-          onChange={(e) => setFolder(e.target.value as FolderId)}
-          className="w-full text-sm bg-white dark:bg-neutral-900 border border-line-light dark:border-line-dark rounded px-2 py-1 text-ink-light dark:text-ink-dark"
-        >
-          {FOLDERS.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.label}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={startNewBible}
-          className="text-xs text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark"
-        >
-          + new bible
-        </button>
+        <div className="flex items-center gap-2 mt-3">
+          <select
+            value={stash.folder}
+            onChange={(e) => setFolder(e.target.value as FolderId)}
+            className="flex-1 text-[12px] bg-canvas-light dark:bg-canvas-dark border border-line-light dark:border-line-dark rounded-md px-2 py-1.5 text-ink-light dark:text-ink-dark cursor-pointer hover:bg-surface-light dark:hover:bg-surface-dark"
+          >
+            {FOLDERS.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={startNewStash}
+            className="text-[12px] px-2.5 py-1.5 rounded-md text-muted-light dark:text-muted-dark hover:bg-canvas-light dark:hover:bg-canvas-dark hover:text-ink-light dark:hover:text-ink-dark"
+            title="Start a new stash"
+          >
+            + new
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-thin">
-        {bible.swatches.length === 0 ? (
-          <div className="p-6 text-sm text-muted-light dark:text-muted-dark text-center">
-            Click any color to add it to your bible.
+        {stash.swatches.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="text-3xl opacity-20 mb-2">◇</div>
+            <div className="text-sm text-muted-light dark:text-muted-dark leading-relaxed">
+              Click any swatch in the app to add it here.
+            </div>
           </div>
         ) : (
-          <ul className="p-2">
-            {bible.swatches.map((s) => (
+          <ul className="p-2.5 space-y-1">
+            {stash.swatches.map((s) => (
               <li
                 key={s.hex}
-                className="flex items-center gap-2 p-1.5 rounded hover:bg-white dark:hover:bg-neutral-900"
+                className="group flex items-center gap-3 p-2 rounded-md hover:bg-canvas-light/70 dark:hover:bg-canvas-dark/70 transition-colors"
               >
                 <div
-                  className="w-8 h-8 rounded border border-line-light dark:border-line-dark shrink-0"
-                  style={{ background: s.hex, color: readableTextOn(s.hex) }}
+                  className="w-9 h-9 rounded-md shrink-0 shadow-soft"
+                  style={{ background: s.hex }}
+                  aria-hidden
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-mono text-xs text-ink-light dark:text-ink-dark">
+                  <div className="font-mono text-[13px] text-ink-light dark:text-ink-dark tracking-tight">
                     {s.hex}
                   </div>
                   {s.name && (
@@ -110,7 +119,7 @@ export function Sidebar() {
                 </div>
                 <button
                   onClick={() => removeSwatch(s.hex)}
-                  className="text-muted-light dark:text-muted-dark hover:text-red-500 text-xs px-1"
+                  className="opacity-0 group-hover:opacity-100 text-muted-light dark:text-muted-dark hover:text-red-500 text-sm w-6 h-6 flex items-center justify-center rounded transition-opacity"
                   aria-label={`Remove ${s.hex}`}
                 >
                   ×
@@ -121,33 +130,33 @@ export function Sidebar() {
         )}
       </div>
 
-      <div className="p-3 border-t border-line-light dark:border-line-dark space-y-1.5">
+      <div className="p-3.5 border-t border-line-light dark:border-line-dark space-y-2">
         <button
           onClick={onCopyAll}
-          disabled={bible.swatches.length === 0}
-          className="w-full text-xs py-1.5 rounded border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-white dark:hover:bg-neutral-900 disabled:opacity-40"
+          disabled={stash.swatches.length === 0}
+          className="w-full text-[12px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
         >
           {copyAllLabel}
         </button>
         <div className="grid grid-cols-3 gap-1.5">
           <button
-            onClick={() => exportPNG(bible)}
-            disabled={bible.swatches.length === 0}
-            className="text-xs py-1.5 rounded border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-white dark:hover:bg-neutral-900 disabled:opacity-40"
+            onClick={() => exportPNG(stash)}
+            disabled={stash.swatches.length === 0}
+            className="text-[11px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
           >
             PNG
           </button>
           <button
-            onClick={() => exportPDF(bible)}
-            disabled={bible.swatches.length === 0}
-            className="text-xs py-1.5 rounded border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-white dark:hover:bg-neutral-900 disabled:opacity-40"
+            onClick={() => exportPDF(stash)}
+            disabled={stash.swatches.length === 0}
+            className="text-[11px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
           >
             PDF
           </button>
           <button
-            onClick={() => exportSVG(bible)}
-            disabled={bible.swatches.length === 0}
-            className="text-xs py-1.5 rounded border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-white dark:hover:bg-neutral-900 disabled:opacity-40"
+            onClick={() => exportSVG(stash)}
+            disabled={stash.swatches.length === 0}
+            className="text-[11px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
           >
             SVG
           </button>
@@ -159,13 +168,13 @@ export function Sidebar() {
                 clearSwatches();
                 setConfirmClear(false);
               }}
-              className="flex-1 text-xs py-1.5 rounded bg-red-500 text-white hover:bg-red-600"
+              className="flex-1 text-[11px] py-2 rounded-md bg-red-500 text-white hover:bg-red-600 font-medium"
             >
               Confirm clear
             </button>
             <button
               onClick={() => setConfirmClear(false)}
-              className="px-3 text-xs py-1.5 rounded border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark"
+              className="px-3 text-[11px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark"
             >
               Cancel
             </button>
@@ -173,8 +182,8 @@ export function Sidebar() {
         ) : (
           <button
             onClick={() => setConfirmClear(true)}
-            disabled={bible.swatches.length === 0}
-            className="w-full text-xs py-1.5 rounded text-muted-light dark:text-muted-dark hover:text-red-500 disabled:opacity-40"
+            disabled={stash.swatches.length === 0}
+            className="w-full text-[11px] py-1.5 rounded-md text-muted-light dark:text-muted-dark hover:text-red-500 disabled:opacity-40 transition-colors"
           >
             Clear All
           </button>
