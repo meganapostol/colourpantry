@@ -12,11 +12,14 @@ const GAP = 4;
 const MIN_CELL = 18;
 const MAX_CELL = 48;
 
+const ZOOM_STEPS = [0.5, 0.75, 1, 1.5, 2, 3, 4];
+
 export function FamilyPage() {
   const { familyId = "" } = useParams();
   const family = getFamilyById(familyId);
   const { addSwatch, recentlyAdded } = useStash();
   const [popping, setPopping] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const maxC = useMemo(
     () => (family ? maxChromaForFamily(family.centerHue) : 0.3),
@@ -35,7 +38,8 @@ export function FamilyPage() {
     return () => ro.disconnect();
   }, []);
 
-  // Pick resolution from available space: as many cells as fit at MIN_CELL pitch.
+  // Resolution stays fixed to the fit-to-viewport count so colors don't shift
+  // mid-zoom. Zoom only scales the cell display size.
   const cols = Math.max(8, Math.floor((size.w - GAP) / (MIN_CELL + GAP)));
   const rows = Math.max(8, Math.floor((size.h - GAP) / (MIN_CELL + GAP)));
 
@@ -56,15 +60,22 @@ export function FamilyPage() {
     );
   }
 
-  // Now compute the actual cell size so the grid fills the container.
-  const cellByWidth = (size.w - GAP) / cols - GAP;
-  const cellByHeight = (size.h - GAP) / rows - GAP;
-  const cell = Math.max(
+  const baseCellByWidth = (size.w - GAP) / cols - GAP;
+  const baseCellByHeight = (size.h - GAP) / rows - GAP;
+  const baseCell = Math.max(
     MIN_CELL,
-    Math.min(MAX_CELL, Math.floor(Math.min(cellByWidth, cellByHeight))),
+    Math.min(MAX_CELL, Math.floor(Math.min(baseCellByWidth, baseCellByHeight))),
   );
+  const cell = Math.max(8, Math.round(baseCell * zoom));
   const gridW = cols * (cell + GAP) - GAP;
   const gridH = rows * (cell + GAP) - GAP;
+
+  const stepZoom = (dir: 1 | -1) => {
+    const idx = ZOOM_STEPS.findIndex((z) => Math.abs(z - zoom) < 0.01);
+    const cur = idx === -1 ? ZOOM_STEPS.indexOf(1) : idx;
+    const next = Math.max(0, Math.min(ZOOM_STEPS.length - 1, cur + dir));
+    setZoom(ZOOM_STEPS[next]);
+  };
 
   return (
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
@@ -91,57 +102,89 @@ export function FamilyPage() {
         </div>
       </div>
 
-      <div
-        ref={wrapRef}
-        className="flex-1 min-h-0 flex items-center justify-center"
-      >
-        {size.w > 0 && (
-          <div
-            className="grid"
-            style={{
-              gridTemplateColumns: `repeat(${cols}, ${cell}px)`,
-              gridTemplateRows: `repeat(${rows}, ${cell}px)`,
-              gap: `${GAP}px`,
-              width: gridW,
-              height: gridH,
-            }}
-          >
-            {waffle.flatMap((row, rIdx) =>
-              row.map((c, cIdx) => {
-                const key = `${rIdx}-${cIdx}`;
-                if (!c.hex) {
-                  return <div key={key} aria-hidden />;
-                }
-                const hex = c.hex.toUpperCase();
-                const isPopping = popping === c.hex;
-                const isRecent = recentlyAdded === hex;
-                return (
-                  <button
-                    key={key}
-                    className={`rounded-md hover:scale-[1.12] hover:z-10 focus-visible:scale-[1.12] focus-visible:outline-none transition-transform ${isPopping ? "swatch-pop" : ""} ${isRecent ? "recent-ring" : ""}`}
-                    style={{ background: c.hex }}
-                    onMouseEnter={(e) => {
-                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      showHexTooltip(c.hex, r.left + r.width / 2, r.bottom);
-                    }}
-                    onMouseLeave={hideHexTooltip}
-                    onFocus={(e) => {
-                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      showHexTooltip(c.hex, r.left + r.width / 2, r.bottom);
-                    }}
-                    onBlur={hideHexTooltip}
-                    onClick={() => {
-                      addSwatch(c.hex);
-                      setPopping(c.hex);
-                      window.setTimeout(() => setPopping(null), 200);
-                    }}
-                    aria-label={`Add ${hex} to stash`}
-                  />
-                );
-              }),
+      <div className="flex-1 min-h-0 relative">
+        <div
+          ref={wrapRef}
+          className="absolute inset-0 overflow-auto scroll-thin"
+        >
+          <div className="min-w-full min-h-full flex items-center justify-center p-2">
+            {size.w > 0 && (
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${cols}, ${cell}px)`,
+                  gridTemplateRows: `repeat(${rows}, ${cell}px)`,
+                  gap: `${GAP}px`,
+                  width: gridW,
+                  height: gridH,
+                }}
+              >
+                {waffle.flatMap((row, rIdx) =>
+                  row.map((c, cIdx) => {
+                    const key = `${rIdx}-${cIdx}`;
+                    if (!c.hex) {
+                      return <div key={key} aria-hidden />;
+                    }
+                    const hex = c.hex.toUpperCase();
+                    const isPopping = popping === c.hex;
+                    const isRecent = recentlyAdded === hex;
+                    return (
+                      <button
+                        key={key}
+                        className={`rounded-md hover:scale-[1.12] hover:z-10 focus-visible:scale-[1.12] focus-visible:outline-none transition-transform ${isPopping ? "swatch-pop" : ""} ${isRecent ? "recent-ring" : ""}`}
+                        style={{ background: c.hex }}
+                        onMouseEnter={(e) => {
+                          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          showHexTooltip(c.hex, r.left + r.width / 2, r.bottom);
+                        }}
+                        onMouseLeave={hideHexTooltip}
+                        onFocus={(e) => {
+                          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          showHexTooltip(c.hex, r.left + r.width / 2, r.bottom);
+                        }}
+                        onBlur={hideHexTooltip}
+                        onClick={() => {
+                          addSwatch(c.hex);
+                          setPopping(c.hex);
+                          window.setTimeout(() => setPopping(null), 200);
+                        }}
+                        aria-label={`Add ${hex} to stash`}
+                      />
+                    );
+                  }),
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
+
+        {/* Zoom controls — floating bottom-right of the waffle area */}
+        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur border border-line-light dark:border-line-dark rounded-full p-1 shadow-lift">
+          <button
+            onClick={() => stepZoom(-1)}
+            disabled={zoom <= ZOOM_STEPS[0]}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-30 disabled:hover:bg-transparent text-base leading-none"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+          <button
+            onClick={() => setZoom(1)}
+            className="px-2.5 h-7 rounded-full font-mono text-[11px] tabular-nums text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark min-w-[3.25rem]"
+            aria-label="Reset zoom"
+            title="Reset to fit"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            onClick={() => stepZoom(1)}
+            disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-30 disabled:hover:bg-transparent text-base leading-none"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+        </div>
       </div>
     </div>
   );
