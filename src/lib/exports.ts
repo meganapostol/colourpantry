@@ -47,7 +47,7 @@ async function rasterize(
   });
 }
 
-function buildStashPoster(stash: Stash): HTMLElement {
+async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
   const wrap = document.createElement("div");
   wrap.style.position = "fixed";
   wrap.style.left = "-10000px";
@@ -70,7 +70,61 @@ function buildStashPoster(stash: Stash): HTMLElement {
   meta.style.fontSize = "14px";
   meta.style.color = "#7A7468";
   meta.style.marginBottom = "32px";
-  meta.textContent = `${stash.swatches.length} swatches · ${new Date(stash.updatedAt).toLocaleDateString()}`;
+  meta.textContent = `${stash.swatches.length} swatch${stash.swatches.length === 1 ? "" : "es"} · ${new Date(stash.updatedAt).toLocaleDateString()}`;
+
+  wrap.appendChild(title);
+  wrap.appendChild(meta);
+
+  // Polaroid for reference image (when present)
+  if (stash.referenceImage) {
+    const polaroidWrap = document.createElement("div");
+    polaroidWrap.style.display = "flex";
+    polaroidWrap.style.justifyContent = "center";
+    polaroidWrap.style.marginBottom = "36px";
+
+    const polaroid = document.createElement("div");
+    polaroid.style.background = "#FFFFFF";
+    polaroid.style.padding = "16px 16px 56px 16px";
+    polaroid.style.boxShadow =
+      "0 2px 8px rgba(20, 14, 0, 0.06), 0 12px 32px rgba(20, 14, 0, 0.10)";
+    polaroid.style.borderRadius = "2px";
+    polaroid.style.position = "relative";
+    polaroid.style.width = "520px";
+    polaroid.style.boxSizing = "border-box";
+
+    const img = document.createElement("img");
+    img.src = stash.referenceImage;
+    img.crossOrigin = "anonymous";
+    img.style.width = "488px";
+    img.style.height = "380px";
+    img.style.objectFit = "cover";
+    img.style.display = "block";
+    img.style.background = "#f3efe6";
+
+    await new Promise<void>((resolve) => {
+      if (img.complete && img.naturalHeight !== 0) return resolve();
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    });
+
+    polaroid.appendChild(img);
+
+    const caption = document.createElement("div");
+    caption.style.position = "absolute";
+    caption.style.bottom = "16px";
+    caption.style.left = "16px";
+    caption.style.right = "16px";
+    caption.style.textAlign = "center";
+    caption.style.fontSize = "14px";
+    caption.style.color = "#7A7468";
+    caption.style.fontStyle = "italic";
+    caption.style.fontFamily = "Jost, ui-sans-serif, system-ui, sans-serif";
+    caption.textContent = stash.name || "Untitled Stash";
+    polaroid.appendChild(caption);
+
+    polaroidWrap.appendChild(polaroid);
+    wrap.appendChild(polaroidWrap);
+  }
 
   const grid = document.createElement("div");
   grid.style.display = "grid";
@@ -111,8 +165,6 @@ function buildStashPoster(stash: Stash): HTMLElement {
   watermark.style.textAlign = "right";
   watermark.textContent = "Made with Colour Pantry";
 
-  wrap.appendChild(title);
-  wrap.appendChild(meta);
   wrap.appendChild(grid);
   wrap.appendChild(watermark);
   return wrap;
@@ -120,7 +172,7 @@ function buildStashPoster(stash: Stash): HTMLElement {
 
 export async function exportStashRaster(stash: Stash, format: RasterFormat) {
   if (stash.swatches.length === 0) return;
-  const node = buildStashPoster(stash);
+  const node = await buildStashPoster(stash);
   document.body.appendChild(node);
   try {
     await rasterize(node, format, safeFilename(stash.name));

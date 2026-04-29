@@ -10,6 +10,7 @@ export function Sidebar() {
     setFolder,
     removeSwatch,
     clearSwatches,
+    setReferenceImage,
     startNewStash,
   } = useStash();
   const [collapsed, setCollapsed] = useState(false);
@@ -93,6 +94,32 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      {stash.referenceImage && (
+        <div className="px-4 py-3 border-b border-line-light dark:border-line-dark flex items-center gap-3 bg-canvas-light/40 dark:bg-canvas-dark/40">
+          <div
+            className="w-12 h-12 rounded-md bg-cover bg-center shrink-0 shadow-soft border border-line-light dark:border-line-dark"
+            style={{ backgroundImage: `url(${stash.referenceImage})` }}
+            aria-hidden
+          />
+          <div className="flex-1 min-w-0">
+            <div className="eyebrow text-muted-light dark:text-muted-dark text-[9px]">
+              Reference photo
+            </div>
+            <div className="text-[11px] text-ink-light dark:text-ink-dark mt-0.5">
+              attached · prints as polaroid
+            </div>
+          </div>
+          <button
+            onClick={() => setReferenceImage(undefined)}
+            className="text-muted-light dark:text-muted-dark hover:text-red-500 text-sm w-6 h-6 flex items-center justify-center rounded hover:bg-canvas-light dark:hover:bg-canvas-dark"
+            title="Remove reference photo"
+            aria-label="Remove reference photo"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto scroll-thin">
         {stash.swatches.length === 0 ? (

@@ -20,6 +20,7 @@ export interface Stash {
   name: string;
   folder: FolderId;
   swatches: Swatch[];
+  referenceImage?: string; // optional data URL, e.g. from Extract page
   createdAt: number;
   updatedAt: number;
 }

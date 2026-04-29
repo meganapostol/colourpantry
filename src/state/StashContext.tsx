@@ -27,6 +27,7 @@ interface StashContextValue {
   addSwatch: (hex: string) => void;
   removeSwatch: (hex: string) => void;
   clearSwatches: () => void;
+  setReferenceImage: (dataUrl: string | undefined) => void;
   startNewStash: () => void;
   loadStash: (id: string) => Promise<void>;
   toast: string | null;
@@ -132,6 +133,10 @@ export function StashProvider({ children }: { children: ReactNode }) {
     setStash((s) => ({ ...s, swatches: [] }));
   }, []);
 
+  const setReferenceImage = useCallback((dataUrl: string | undefined) => {
+    setStash((s) => ({ ...s, referenceImage: dataUrl }));
+  }, []);
+
   const startNewStash = useCallback(() => {
     setStash((prev) => newStash(prev.folder));
   }, []);
@@ -149,6 +154,7 @@ export function StashProvider({ children }: { children: ReactNode }) {
       addSwatch,
       removeSwatch,
       clearSwatches,
+      setReferenceImage,
       startNewStash,
       loadStash,
       toast,
@@ -162,6 +168,7 @@ export function StashProvider({ children }: { children: ReactNode }) {
       addSwatch,
       removeSwatch,
       clearSwatches,
+      setReferenceImage,
       startNewStash,
       loadStash,
       toast,

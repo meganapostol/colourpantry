@@ -8,8 +8,9 @@ import {
 } from "../lib/exports";
 
 export function ExtractPage() {
-  const { addSwatch, recentlyAdded, showToast } = useStash();
+  const { addSwatch, recentlyAdded, showToast, setReferenceImage } = useStash();
   const [imgUrl, setImgUrl] = useState<string | null>(null);
+  const [imgDataUrl, setImgDataUrl] = useState<string | null>(null);
   const [palette, setPalette] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -21,6 +22,14 @@ export function ExtractPage() {
     const url = URL.createObjectURL(file);
     setImgUrl(url);
     setLoading(true);
+
+    // Persist a data URL alongside the blob URL so it survives reload via IndexedDB
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") setImgDataUrl(reader.result);
+    };
+    reader.readAsDataURL(file);
+
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -55,17 +64,20 @@ export function ExtractPage() {
 
   const saveAll = () => {
     palette.forEach((h) => addSwatch(h));
-    showToast(`${palette.length} swatches added`);
+    if (imgDataUrl) setReferenceImage(imgDataUrl);
+    showToast(`${palette.length} swatches added · photo attached`);
   };
 
   const onSwatchClick = (hex: string) => {
     addSwatch(hex);
+    if (imgDataUrl) setReferenceImage(imgDataUrl);
     setPopping(hex);
     window.setTimeout(() => setPopping(null), 200);
   };
 
   const reset = () => {
     setImgUrl(null);
+    setImgDataUrl(null);
     setPalette([]);
   };
 
