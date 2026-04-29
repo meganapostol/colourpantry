@@ -149,35 +149,52 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
     wrap.appendChild(polaroidWrap);
   }
 
+  const count = stash.swatches.length;
+  const showName = count <= 12;
+  const hexSize = count <= 14 ? 14 : count <= 22 ? 12 : 10;
+  const stripHeight = showName ? 160 : 120;
+
   const grid = document.createElement("div");
   grid.style.display = "grid";
-  grid.style.gridTemplateColumns = "repeat(4, 1fr)";
-  grid.style.gap = "8px";
+  grid.style.gridTemplateColumns = `repeat(${count}, minmax(0, 1fr))`;
+  grid.style.gap = "6px";
+  grid.style.height = `${stripHeight}px`;
 
   for (const s of stash.swatches) {
     const cell = document.createElement("div");
     cell.style.background = s.hex;
     cell.style.borderRadius = "6px";
-    cell.style.padding = "16px";
-    cell.style.aspectRatio = "1 / 1";
+    cell.style.padding = count <= 14 ? "12px" : "8px";
     cell.style.display = "flex";
     cell.style.flexDirection = "column";
     cell.style.justifyContent = "flex-end";
     cell.style.color = readableTextOn(s.hex);
+    cell.style.minWidth = "0";
+    cell.style.overflow = "hidden";
 
     const hexLabel = document.createElement("div");
     hexLabel.style.fontFamily = "ui-monospace, Consolas, monospace";
-    hexLabel.style.fontSize = "16px";
+    hexLabel.style.fontSize = `${hexSize}px`;
     hexLabel.style.fontWeight = "600";
+    hexLabel.style.letterSpacing = "-0.01em";
+    hexLabel.style.whiteSpace = "nowrap";
+    hexLabel.style.overflow = "hidden";
+    hexLabel.style.textOverflow = "ellipsis";
     hexLabel.textContent = s.hex.toUpperCase();
-
-    const nameLabel = document.createElement("div");
-    nameLabel.style.fontSize = "12px";
-    nameLabel.style.opacity = "0.85";
-    nameLabel.textContent = s.name || nameForHex(s.hex);
-
     cell.appendChild(hexLabel);
-    cell.appendChild(nameLabel);
+
+    if (showName) {
+      const nameLabel = document.createElement("div");
+      nameLabel.style.fontSize = "11px";
+      nameLabel.style.opacity = "0.85";
+      nameLabel.style.marginTop = "2px";
+      nameLabel.style.whiteSpace = "nowrap";
+      nameLabel.style.overflow = "hidden";
+      nameLabel.style.textOverflow = "ellipsis";
+      nameLabel.textContent = s.name || nameForHex(s.hex);
+      cell.appendChild(nameLabel);
+    }
+
     grid.appendChild(cell);
   }
 
@@ -263,14 +280,17 @@ export function exportPDF(stash: Stash) {
 
 export function exportSVG(stash: Stash) {
   if (stash.swatches.length === 0) return;
-  const cols = 4;
-  const cell = 200;
-  const gap = 8;
-  const padding = 32;
-  const titleH = 60;
-  const rows = Math.ceil(stash.swatches.length / cols);
-  const width = padding * 2 + cols * cell + (cols - 1) * gap;
-  const height = padding * 2 + titleH + rows * (cell + 40) + (rows - 1) * gap;
+  const count = stash.swatches.length;
+  const padding = 40;
+  const titleH = 70;
+  const gap = 6;
+  const stripH = count <= 14 ? 220 : count <= 22 ? 180 : 140;
+  const stripW = Math.max(960, count * 96);
+  const cellW = (stripW - (count - 1) * gap) / count;
+  const width = padding * 2 + stripW;
+  const height = padding * 2 + titleH + stripH;
+  const showName = count <= 12;
+  const hexSize = count <= 14 ? 16 : count <= 22 ? 13 : 11;
 
   const parts: string[] = [];
   parts.push(
@@ -278,26 +298,28 @@ export function exportSVG(stash: Stash) {
   );
   parts.push(`<rect width="${width}" height="${height}" fill="#FAF7F2"/>`);
   parts.push(
-    `<text x="${padding}" y="${padding + 28}" font-family="Jost, system-ui, sans-serif" font-size="28" font-weight="500" fill="#1A1A1A">${escapeXml(stash.name || "Untitled Stash")}</text>`,
+    `<text x="${padding}" y="${padding + 30}" font-family="Jost, system-ui, sans-serif" font-size="32" font-weight="500" letter-spacing="-0.02em" fill="#1A1A1A">${escapeXml(stash.name || "Untitled Stash")}</text>`,
   );
   parts.push(
-    `<text x="${padding}" y="${padding + 50}" font-family="Jost, system-ui, sans-serif" font-size="12" fill="#7A7468">${stash.swatches.length} swatches</text>`,
+    `<text x="${padding}" y="${padding + 54}" font-family="Jost, system-ui, sans-serif" font-size="13" fill="#7A7468">${count} swatch${count === 1 ? "" : "es"}</text>`,
   );
 
+  const stripY = padding + titleH;
   stash.swatches.forEach((s, i) => {
-    const c = i % cols;
-    const r = Math.floor(i / cols);
-    const x = padding + c * (cell + gap);
-    const y = padding + titleH + r * (cell + 40 + gap);
+    const x = padding + i * (cellW + gap);
     parts.push(
-      `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="6" fill="${s.hex}"/>`,
+      `<rect x="${x}" y="${stripY}" width="${cellW}" height="${stripH}" rx="6" fill="${s.hex}"/>`,
     );
+    const ink = readableTextOn(s.hex);
+    const labelPad = count <= 14 ? 14 : 10;
     parts.push(
-      `<text x="${x}" y="${y + cell + 22}" font-family="ui-monospace, Consolas, monospace" font-size="14" font-weight="600" fill="#1A1A1A">${s.hex.toUpperCase()}</text>`,
+      `<text x="${x + labelPad}" y="${stripY + stripH - (showName ? 26 : 12)}" font-family="ui-monospace, Consolas, monospace" font-size="${hexSize}" font-weight="600" fill="${ink}">${s.hex.toUpperCase()}</text>`,
     );
-    parts.push(
-      `<text x="${x}" y="${y + cell + 36}" font-family="Jost, system-ui, sans-serif" font-size="11" fill="#7A7468">${escapeXml(s.name || nameForHex(s.hex))}</text>`,
-    );
+    if (showName) {
+      parts.push(
+        `<text x="${x + labelPad}" y="${stripY + stripH - 12}" font-family="Jost, system-ui, sans-serif" font-size="11" fill="${ink}" fill-opacity="0.85">${escapeXml(s.name || nameForHex(s.hex))}</text>`,
+      );
+    }
   });
 
   parts.push(`</svg>`);
