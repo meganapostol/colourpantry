@@ -224,11 +224,25 @@ export async function exportStashRaster(stash: Stash, format: RasterFormat) {
 export const exportPNG = (stash: Stash) => exportStashRaster(stash, "png");
 export const exportJPG = (stash: Stash) => exportStashRaster(stash, "jpg");
 
-export function exportPDF(stash: Stash) {
+export interface PDFOptions {
+  customLogoDataUrl?: string;
+}
+
+export function exportPDF(stash: Stash, options: PDFOptions = {}) {
   if (stash.swatches.length === 0) return;
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const W = pdf.internal.pageSize.getWidth();
   const H = pdf.internal.pageSize.getHeight();
+
+  if (options.customLogoDataUrl) {
+    try {
+      const logoW = 28;
+      const logoH = 28;
+      pdf.addImage(options.customLogoDataUrl, "PNG", W / 2 - logoW / 2, H / 2 - 60, logoW, logoH);
+    } catch {
+      /* noop — bad image */
+    }
+  }
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(28);
@@ -240,7 +254,12 @@ export function exportPDF(stash: Stash) {
   pdf.setTextColor(120);
   pdf.text(`${stash.swatches.length} swatches`, W / 2, H / 2, { align: "center" });
   pdf.setTextColor(160);
-  pdf.text("Made with Colour Pantry", W / 2, H - 12, { align: "center" });
+  pdf.text(
+    options.customLogoDataUrl ? "Curated with Colour Pantry" : "Made with Colour Pantry",
+    W / 2,
+    H - 12,
+    { align: "center" },
+  );
 
   const margin = 18;
   const cellW = (W - margin * 2 - 8) / 2;

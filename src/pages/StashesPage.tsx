@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type Stash,
   FOLDERS,
@@ -103,20 +103,13 @@ export function StashesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {inFolder.map((s) => (
-              <button
+              <StashCard
                 key={s.id}
-                onClick={() => setOpenStash(s)}
-                className="text-left rounded-2xl border border-line-light dark:border-line-dark p-4 bg-surface-light dark:bg-surface-dark lift-hover"
-              >
-                <StashThumbnail stash={s} />
-                <div className="mt-3 font-medium text-base text-ink-light dark:text-ink-dark truncate tracking-tight">
-                  {s.name}
-                </div>
-                <div className="text-[11px] text-muted-light dark:text-muted-dark mt-0.5">
-                  {s.swatches.length} swatch{s.swatches.length === 1 ? "" : "es"} ·{" "}
-                  {new Date(s.updatedAt).toLocaleDateString()}
-                </div>
-              </button>
+                stash={s}
+                onOpen={() => setOpenStash(s)}
+                onLoad={() => onLoad(s.id)}
+                onDelete={() => onDelete(s.id)}
+              />
             ))}
           </div>
         )}
@@ -129,6 +122,171 @@ export function StashesPage() {
             onDelete={() => onDelete(openStash.id)}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function StashCard({
+  stash,
+  onOpen,
+  onLoad,
+  onDelete,
+}: {
+  stash: Stash;
+  onOpen: () => void;
+  onLoad: () => void;
+  onDelete: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setConfirmDel(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setConfirmDel(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  const stop = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="relative text-left rounded-2xl border border-line-light dark:border-line-dark p-4 bg-surface-light dark:bg-surface-dark lift-hover cursor-pointer focus:outline-none focus:ring-2 focus:ring-ink-light dark:focus:ring-ink-dark"
+    >
+      <StashThumbnail stash={stash} />
+      <div className="mt-3 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-base text-ink-light dark:text-ink-dark truncate tracking-tight">
+            {stash.name}
+          </div>
+          <div className="text-[11px] text-muted-light dark:text-muted-dark mt-0.5">
+            {stash.swatches.length} swatch{stash.swatches.length === 1 ? "" : "es"} ·{" "}
+            {new Date(stash.updatedAt).toLocaleDateString()}
+          </div>
+        </div>
+
+        <div ref={menuRef} className="relative shrink-0" onClick={stop}>
+          <button
+            type="button"
+            onClick={(e) => {
+              stop(e);
+              setMenuOpen((v) => !v);
+              setConfirmDel(false);
+            }}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label={`More actions for ${stash.name}`}
+            title="More actions"
+            className="w-8 h-8 -mr-1 -mt-1 flex items-center justify-center rounded-full text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <circle cx="5" cy="12" r="1.6" />
+              <circle cx="12" cy="12" r="1.6" />
+              <circle cx="19" cy="12" r="1.6" />
+            </svg>
+          </button>
+
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute top-9 right-0 z-20 w-48 rounded-xl border border-line-light dark:border-line-dark bg-canvas-light dark:bg-canvas-dark shadow-lift overflow-hidden p-1"
+              onClick={stop}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={(e) => {
+                  stop(e);
+                  setMenuOpen(false);
+                  onOpen();
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg text-[13px] text-ink-light dark:text-ink-dark hover:bg-surface-light dark:hover:bg-surface-dark"
+              >
+                Open
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={(e) => {
+                  stop(e);
+                  setMenuOpen(false);
+                  onLoad();
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg text-[13px] text-ink-light dark:text-ink-dark hover:bg-surface-light dark:hover:bg-surface-dark"
+              >
+                Load into sidebar
+              </button>
+              <div className="my-1 border-t border-line-light dark:border-line-dark" />
+              {confirmDel ? (
+                <div className="flex gap-1 p-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      stop(e);
+                      setMenuOpen(false);
+                      setConfirmDel(false);
+                      onDelete();
+                    }}
+                    className="flex-1 px-2 py-1.5 rounded-md bg-red-500 text-white text-[12px] font-medium hover:bg-red-600"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      stop(e);
+                      setConfirmDel(false);
+                    }}
+                    className="px-2 py-1.5 rounded-md border border-line-light dark:border-line-dark text-[12px] text-ink-light dark:text-ink-dark"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    stop(e);
+                    setConfirmDel(true);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-[13px] text-red-600 dark:text-red-400 hover:bg-red-500/10"
+                >
+                  Delete stash
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

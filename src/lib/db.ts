@@ -15,12 +15,33 @@ export interface Swatch {
   addedAt: number;
 }
 
+export interface GradientStop {
+  hex: string;
+  position: number; // 0..1
+}
+
+export interface Gradient {
+  type: "linear" | "radial";
+  angle: number; // degrees, 0..360
+  stops: GradientStop[];
+}
+
+export interface FontPairing {
+  pairId: string;
+  headingFamily: string;
+  headingWeight: number;
+  bodyFamily: string;
+  bodyWeight: number;
+}
+
 export interface Stash {
   id: string;
   name: string;
   folder: FolderId;
   swatches: Swatch[];
   referenceImage?: string; // optional data URL, e.g. from Extract page
+  gradient?: Gradient;
+  fontPair?: FontPairing;
   createdAt: number;
   updatedAt: number;
 }

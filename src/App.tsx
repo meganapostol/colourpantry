@@ -11,6 +11,14 @@ import { FamilyPage } from "./pages/FamilyPage";
 import { SkinPage } from "./pages/SkinPage";
 import { ExtractPage } from "./pages/ExtractPage";
 import { StashesPage } from "./pages/StashesPage";
+import { GeneratePage } from "./pages/GeneratePage";
+import { VariationsPage } from "./pages/VariationsPage";
+import { ContrastPage } from "./pages/ContrastPage";
+import { VisualizePage } from "./pages/VisualizePage";
+import { CollagePage } from "./pages/CollagePage";
+import { GradientsPage } from "./pages/GradientsPage";
+import { FontsPage } from "./pages/FontsPage";
+import { LibraryPage } from "./pages/LibraryPage";
 
 export default function App() {
   return (
@@ -28,6 +36,14 @@ export default function App() {
                     <Route path="/skin" element={<SkinPage />} />
                     <Route path="/extract" element={<ExtractPage />} />
                     <Route path="/stashes" element={<StashesPage />} />
+                    <Route path="/generate" element={<GeneratePage />} />
+                    <Route path="/variations" element={<VariationsPage />} />
+                    <Route path="/contrast" element={<ContrastPage />} />
+                    <Route path="/visualize" element={<VisualizePage />} />
+                    <Route path="/collage" element={<CollagePage />} />
+                    <Route path="/gradients" element={<GradientsPage />} />
+                    <Route path="/fonts" element={<FontsPage />} />
+                    <Route path="/library" element={<LibraryPage />} />
                     <Route path="/bibles" element={<Navigate to="/stashes" replace />} />
                   </Routes>
                 </div>

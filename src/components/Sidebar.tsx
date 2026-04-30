@@ -1,7 +1,26 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useStash } from "../state/StashContext";
 import { FOLDERS, type FolderId } from "../lib/db";
 import { exportJPG, exportPDF, exportPNG, exportSVG } from "../lib/exports";
+import {
+  exportCSS,
+  exportSCSS,
+  exportTailwind,
+  exportJSON,
+  exportFigmaTokens,
+  exportCSV,
+  exportTXT,
+} from "../lib/advancedExports";
+import { fontStack, loadFontPair, FONT_PAIRS } from "../lib/fontPairs";
+
+function gradientCss(g: NonNullable<ReturnType<typeof useStash>["stash"]["gradient"]>) {
+  const stops = [...g.stops]
+    .sort((a, b) => a.position - b.position)
+    .map((s) => `${s.hex} ${(s.position * 100).toFixed(0)}%`)
+    .join(", ");
+  if (g.type === "radial") return `radial-gradient(circle, ${stops})`;
+  return `linear-gradient(${g.angle}deg, ${stops})`;
+}
 
 export function Sidebar() {
   const {
@@ -11,11 +30,18 @@ export function Sidebar() {
     removeSwatch,
     clearSwatches,
     setReferenceImage,
+    setGradient,
+    setFontPair,
     startNewStash,
+    customLogo,
+    setCustomLogo,
   } = useStash();
   const [collapsed, setCollapsed] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [copyAllLabel, setCopyAllLabel] = useState("Copy All");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showLogoSettings, setShowLogoSettings] = useState(false);
+  const logoFileRef = useRef<HTMLInputElement>(null);
 
   if (collapsed) {
     return (
@@ -47,6 +73,21 @@ export function Sidebar() {
       setTimeout(() => setCopyAllLabel("Copy All"), 1200);
     }
   };
+
+  const onLogoFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") setCustomLogo(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const fontPair = stash.fontPair
+    ? FONT_PAIRS.find((p) => p.id === stash.fontPair?.pairId)
+    : undefined;
+
+  if (fontPair) loadFontPair(fontPair);
 
   return (
     <aside className="w-80 shrink-0 bg-surface-light/70 dark:bg-surface-dark/60 backdrop-blur-md border-l border-line-light dark:border-line-dark flex flex-col h-full">
@@ -121,6 +162,62 @@ export function Sidebar() {
         </div>
       )}
 
+      {stash.gradient && (
+        <div className="px-4 py-3 border-b border-line-light dark:border-line-dark flex items-center gap-3 bg-canvas-light/40 dark:bg-canvas-dark/40">
+          <div
+            className="w-12 h-12 rounded-md shrink-0 shadow-soft border border-line-light dark:border-line-dark"
+            style={{ background: gradientCss(stash.gradient) }}
+            aria-hidden
+          />
+          <div className="flex-1 min-w-0">
+            <div className="eyebrow text-muted-light dark:text-muted-dark text-[9px]">
+              Gradient
+            </div>
+            <div className="text-[11px] text-ink-light dark:text-ink-dark mt-0.5">
+              {stash.gradient.type} · {stash.gradient.stops.length} stops
+            </div>
+          </div>
+          <button
+            onClick={() => setGradient(undefined)}
+            className="text-muted-light dark:text-muted-dark hover:text-red-500 text-sm w-6 h-6 flex items-center justify-center rounded hover:bg-canvas-light dark:hover:bg-canvas-dark"
+            title="Remove gradient"
+            aria-label="Remove gradient"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {fontPair && (
+        <div className="px-4 py-3 border-b border-line-light dark:border-line-dark flex items-center gap-3 bg-canvas-light/40 dark:bg-canvas-dark/40">
+          <div
+            className="w-12 h-12 rounded-md shrink-0 shadow-soft border border-line-light dark:border-line-dark bg-canvas-light dark:bg-canvas-dark flex items-center justify-center"
+            aria-hidden
+          >
+            <span
+              className="text-[20px] leading-none text-ink-light dark:text-ink-dark"
+              style={{ fontFamily: fontStack(fontPair.heading.family), fontWeight: fontPair.heading.weight }}
+            >
+              Aa
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="eyebrow text-muted-light dark:text-muted-dark text-[9px]">Font pair</div>
+            <div className="text-[11px] text-ink-light dark:text-ink-dark mt-0.5 truncate">
+              {fontPair.name}
+            </div>
+          </div>
+          <button
+            onClick={() => setFontPair(undefined)}
+            className="text-muted-light dark:text-muted-dark hover:text-red-500 text-sm w-6 h-6 flex items-center justify-center rounded hover:bg-canvas-light dark:hover:bg-canvas-dark"
+            title="Remove font pair"
+            aria-label="Remove font pair"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto scroll-thin">
         {stash.swatches.length === 0 ? (
           <div className="p-8 text-center">
@@ -188,11 +285,12 @@ export function Sidebar() {
             JPG
           </button>
           <button
-            onClick={() => exportPDF(stash)}
+            onClick={() => exportPDF(stash, { customLogoDataUrl: customLogo })}
             disabled={stash.swatches.length === 0}
             className="text-[11px] py-2 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+            title={customLogo ? "PDF (with your logo)" : "PDF"}
           >
-            PDF
+            PDF{customLogo ? "★" : ""}
           </button>
           <button
             onClick={() => exportSVG(stash)}
@@ -202,6 +300,128 @@ export function Sidebar() {
             SVG
           </button>
         </div>
+
+        <button
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="w-full text-[11px] py-1.5 rounded-md text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark transition-colors flex items-center justify-center gap-1"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showAdvanced ? "rotate-180" : ""}`}>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+          {showAdvanced ? "Hide developer formats" : "More formats"}
+        </button>
+
+        {showAdvanced && (
+          <div className="grid grid-cols-3 gap-1.5 pt-1">
+            <button
+              onClick={() => exportCSS(stash)}
+              disabled={stash.swatches.length === 0}
+              className="text-[10px] py-1.5 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+              title="CSS variables"
+            >
+              CSS
+            </button>
+            <button
+              onClick={() => exportSCSS(stash)}
+              disabled={stash.swatches.length === 0}
+              className="text-[10px] py-1.5 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+              title="SCSS variables"
+            >
+              SCSS
+            </button>
+            <button
+              onClick={() => exportTailwind(stash)}
+              disabled={stash.swatches.length === 0}
+              className="text-[10px] py-1.5 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+              title="Tailwind config"
+            >
+              Tailwind
+            </button>
+            <button
+              onClick={() => exportJSON(stash)}
+              disabled={stash.swatches.length === 0}
+              className="text-[10px] py-1.5 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+              title="JSON snapshot"
+            >
+              JSON
+            </button>
+            <button
+              onClick={() => exportFigmaTokens(stash)}
+              disabled={stash.swatches.length === 0}
+              className="text-[10px] py-1.5 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+              title="Figma / W3C tokens"
+            >
+              Tokens
+            </button>
+            <button
+              onClick={() => exportCSV(stash)}
+              disabled={stash.swatches.length === 0}
+              className="text-[10px] py-1.5 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+              title="CSV (Adobe-importable)"
+            >
+              CSV
+            </button>
+            <button
+              onClick={() => exportTXT(stash)}
+              disabled={stash.swatches.length === 0}
+              className="col-span-3 text-[10px] py-1.5 rounded-md border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark disabled:opacity-40 transition-colors font-medium"
+              title="Plain text list"
+            >
+              TXT
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowLogoSettings((v) => !v)}
+          className="w-full text-[11px] py-1.5 rounded-md text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark transition-colors flex items-center justify-center gap-1"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showLogoSettings ? "rotate-180" : ""}`}>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+          {customLogo ? "Logo on PDF · attached" : "Add logo to PDF"}
+        </button>
+
+        {showLogoSettings && (
+          <div className="space-y-2 pt-1">
+            {customLogo ? (
+              <div className="flex items-center gap-2 p-2 rounded-md border border-line-light dark:border-line-dark">
+                <div
+                  className="w-10 h-10 rounded bg-contain bg-center bg-no-repeat shrink-0 bg-canvas-light dark:bg-canvas-dark"
+                  style={{ backgroundImage: `url(${customLogo})` }}
+                  aria-hidden
+                />
+                <div className="flex-1 text-[10px] text-muted-light dark:text-muted-dark">
+                  Saved · appears on PDF cover
+                </div>
+                <button
+                  onClick={() => setCustomLogo(undefined)}
+                  className="text-muted-light dark:text-muted-dark hover:text-red-500 text-xs px-2"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => logoFileRef.current?.click()}
+                className="w-full text-[11px] py-2 rounded-md border border-dashed border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
+              >
+                Upload logo · PNG with transparency
+              </button>
+            )}
+            <input
+              ref={logoFileRef}
+              type="file"
+              accept="image/png,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onLogoFile(f);
+              }}
+            />
+          </div>
+        )}
+
         {confirmClear ? (
           <div className="flex gap-1.5">
             <button
