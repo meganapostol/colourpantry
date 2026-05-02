@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./state/ThemeContext";
 import { StashProvider } from "./state/StashContext";
+import { CVDProvider, useCVD } from "./state/CVDContext";
+import { CVDFilter } from "./components/CVDFilter";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Toast } from "./components/Toast";
@@ -20,42 +22,57 @@ import { GradientsPage } from "./pages/GradientsPage";
 import { FontsPage } from "./pages/FontsPage";
 import { LibraryPage } from "./pages/LibraryPage";
 
+function CVDFilteredContent() {
+  const { mode } = useCVD();
+  const filterStyle =
+    mode === "none"
+      ? undefined
+      : { filter: `url(#cvd-${mode})`, WebkitFilter: `url(#cvd-${mode})` };
+
+  return (
+    <div className="flex-1 flex min-h-0" style={filterStyle}>
+      <main className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/family/:familyId" element={<FamilyPage />} />
+            <Route path="/skin" element={<SkinPage />} />
+            <Route path="/extract" element={<ExtractPage />} />
+            <Route path="/stashes" element={<StashesPage />} />
+            <Route path="/generate" element={<GeneratePage />} />
+            <Route path="/variations" element={<VariationsPage />} />
+            <Route path="/contrast" element={<ContrastPage />} />
+            <Route path="/visualize" element={<VisualizePage />} />
+            <Route path="/collage" element={<CollagePage />} />
+            <Route path="/gradients" element={<GradientsPage />} />
+            <Route path="/fonts" element={<FontsPage />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/bibles" element={<Navigate to="/stashes" replace />} />
+          </Routes>
+        </div>
+        <Footer />
+      </main>
+      <Sidebar />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
-      <StashProvider>
-        <BrowserRouter>
-          <div className="h-screen flex flex-col bg-canvas-light dark:bg-canvas-dark text-ink-light dark:text-ink-dark">
-            <Header />
-            <div className="flex-1 flex min-h-0">
-              <main className="flex-1 flex flex-col min-w-0 min-h-0">
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/family/:familyId" element={<FamilyPage />} />
-                    <Route path="/skin" element={<SkinPage />} />
-                    <Route path="/extract" element={<ExtractPage />} />
-                    <Route path="/stashes" element={<StashesPage />} />
-                    <Route path="/generate" element={<GeneratePage />} />
-                    <Route path="/variations" element={<VariationsPage />} />
-                    <Route path="/contrast" element={<ContrastPage />} />
-                    <Route path="/visualize" element={<VisualizePage />} />
-                    <Route path="/collage" element={<CollagePage />} />
-                    <Route path="/gradients" element={<GradientsPage />} />
-                    <Route path="/fonts" element={<FontsPage />} />
-                    <Route path="/library" element={<LibraryPage />} />
-                    <Route path="/bibles" element={<Navigate to="/stashes" replace />} />
-                  </Routes>
-                </div>
-                <Footer />
-              </main>
-              <Sidebar />
+      <CVDProvider>
+        <StashProvider>
+          <BrowserRouter>
+            <CVDFilter />
+            <div className="h-screen flex flex-col bg-canvas-light dark:bg-canvas-dark text-ink-light dark:text-ink-dark">
+              <Header />
+              <CVDFilteredContent />
+              <Toast />
+              <HexTooltip />
             </div>
-            <Toast />
-            <HexTooltip />
-          </div>
-        </BrowserRouter>
-      </StashProvider>
+          </BrowserRouter>
+        </StashProvider>
+      </CVDProvider>
     </ThemeProvider>
   );
 }
