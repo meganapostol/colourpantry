@@ -88,9 +88,11 @@ export function LibraryPage() {
                   <div
                     key={hex}
                     style={{ background: hex, color: readableTextOn(hex) }}
-                    className="flex items-end p-2 text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="flex items-end p-2 text-[10px] font-mono"
                   >
-                    {hex}
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      {hex}
+                    </span>
                   </div>
                 ))}
               </div>
