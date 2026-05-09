@@ -12,6 +12,7 @@ const PRIMARY_TABS = [
 ];
 
 const TOOL_TABS: Array<{ to: string; label: string; blurb: string }> = [
+  { to: "/lookup", label: "Lookup", blurb: "Probe a single hex code" },
   { to: "/skin", label: "Skin tones", blurb: "Calibrated tonal rows" },
   { to: "/extract", label: "Extract", blurb: "Pick palette from image" },
   { to: "/collage", label: "Collage", blurb: "Compose images + palette" },

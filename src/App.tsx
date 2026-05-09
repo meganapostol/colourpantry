@@ -21,6 +21,7 @@ import { CollagePage } from "./pages/CollagePage";
 import { GradientsPage } from "./pages/GradientsPage";
 import { FontsPage } from "./pages/FontsPage";
 import { LibraryPage } from "./pages/LibraryPage";
+import { LookupPage } from "./pages/LookupPage";
 
 function CVDFilteredContent() {
   const { mode } = useCVD();
@@ -47,6 +48,7 @@ function CVDFilteredContent() {
             <Route path="/gradients" element={<GradientsPage />} />
             <Route path="/fonts" element={<FontsPage />} />
             <Route path="/library" element={<LibraryPage />} />
+            <Route path="/lookup" element={<LookupPage />} />
             <Route path="/bibles" element={<Navigate to="/stashes" replace />} />
           </Routes>
         </div>
