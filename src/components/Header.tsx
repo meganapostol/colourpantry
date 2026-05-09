@@ -4,22 +4,55 @@ import { useTheme } from "../state/ThemeContext";
 import { useCVD, CVD_MODES } from "../state/CVDContext";
 import chroma from "chroma-js";
 
-const PRIMARY_TABS = [
-  { to: "/", label: "Home", end: true },
-  { to: "/generate", label: "Mix" },
-  { to: "/library", label: "Recipes" },
-  { to: "/lookup", label: "Taste" },
-  { to: "/stashes", label: "Stashes" },
+interface TabMeta {
+  to: string;
+  label: string;
+  end?: boolean;
+  blurb: string;
+}
+
+const PRIMARY_TABS: TabMeta[] = [
+  {
+    to: "/",
+    label: "Home",
+    end: true,
+    blurb: "Every hex code, organised by hue family. Click a family to open it.",
+  },
+  {
+    to: "/generate",
+    label: "Mix",
+    blurb:
+      "Generate a palette using a harmony rule. Lock the colours you like, shuffle the rest.",
+  },
+  {
+    to: "/library",
+    label: "Recipes",
+    blurb:
+      "Hand-picked palettes for different moods and seasons. Drop one into your stash.",
+  },
+  {
+    to: "/lookup",
+    label: "Taste",
+    blurb:
+      "Look up any hex. See its neighbours, how it reads under colour vision deficiency, and palettes that suit it.",
+  },
+  {
+    to: "/stashes",
+    label: "Stashes",
+    blurb: "Every palette you've saved, organised by folder. Load or export.",
+  },
 ];
 
+const TOOLS_BLURB = "Specialised tools for skin tones, images, contrast, gradients, and more.";
+
 const TOOL_TABS: Array<{ to: string; label: string; blurb: string }> = [
-  { to: "/skin", label: "Skin tones", blurb: "Calibrated tonal rows" },
-  { to: "/extract", label: "Pluck", blurb: "Pick palette from image" },
-  { to: "/collage", label: "Plate", blurb: "Compose images + palette" },
-  { to: "/variations", label: "Spice", blurb: "Tints, shades, hues" },
-  { to: "/contrast", label: "Pair", blurb: "WCAG pairwise grid" },
-  { to: "/visualize", label: "Serve", blurb: "Apply to UI mockups" },
-  { to: "/gradients", label: "Pour", blurb: "Compose & save gradients" },
+  { to: "/skin", label: "Skin tones", blurb: "Calibrated tonal rows for any undertone." },
+  { to: "/extract", label: "Pluck", blurb: "Drop in a photo, pluck a palette from it." },
+  { to: "/collage", label: "Plate", blurb: "Compose a moodboard from images and stash colours." },
+  { to: "/variations", label: "Spice", blurb: "Tints, shades, tones, hue shifts, saturation sweeps." },
+  { to: "/contrast", label: "Pair", blurb: "Every pair in your stash checked against WCAG contrast." },
+  { to: "/visualize", label: "Serve", blurb: "Your palette applied to common UI mockups." },
+  { to: "/gradients", label: "Pour", blurb: "Compose a gradient using stash colours." },
 ];
 
 const LOGO_TEXT = "colour pantry";
@@ -45,6 +78,7 @@ export function Header() {
   const location = useLocation();
   const [toolsOpen, setToolsOpen] = useState(false);
   const [cvdOpen, setCvdOpen] = useState(false);
+  const [hoveredBlurb, setHoveredBlurb] = useState<string | null>(null);
   const toolsRef = useRef<HTMLDivElement>(null);
   const cvdRef = useRef<HTMLDivElement>(null);
   const letters = LOGO_TEXT.split("");
@@ -86,7 +120,23 @@ export function Header() {
     location.pathname.startsWith("/family/");
 
   const cvdActive = cvdMode !== "none";
-  const cvdLabel = CVD_MODES.find((m) => m.id === cvdMode)?.label ?? "Normal vision";
+  const cvdLabel = CVD_MODES.find((m) => m.id === cvdMode)?.label ?? "Unfiltered";
+
+  const activePrimary = PRIMARY_TABS.find((t) =>
+    t.end ? location.pathname === t.to : location.pathname.startsWith(t.to),
+  );
+  const activeTool = TOOL_TABS.find((t) => location.pathname.startsWith(t.to));
+  const inFamily = location.pathname.startsWith("/family/");
+
+  const blurb =
+    hoveredBlurb ??
+    (inFamily
+      ? "Drilling into a hue family. Click any cell to add it to your stash."
+      : activeTool
+        ? activeTool.blurb
+        : activePrimary
+          ? activePrimary.blurb
+          : "");
 
   return (
     <header className="sticky top-0 z-30 backdrop-blur-md bg-canvas-light/80 dark:bg-canvas-dark/80 border-b border-line-light/70 dark:border-line-dark/70">
@@ -114,6 +164,10 @@ export function Header() {
               key={t.to}
               to={t.to}
               end={t.end}
+              onMouseEnter={() => setHoveredBlurb(t.blurb)}
+              onMouseLeave={() => setHoveredBlurb(null)}
+              onFocus={() => setHoveredBlurb(t.blurb)}
+              onBlur={() => setHoveredBlurb(null)}
               className={({ isActive }) =>
                 `px-3.5 py-1.5 rounded-full text-[13px] font-medium tracking-tight transition-all ${
                   isActive
@@ -129,6 +183,10 @@ export function Header() {
           <div ref={toolsRef} className="relative">
             <button
               onClick={() => setToolsOpen((v) => !v)}
+              onMouseEnter={() => setHoveredBlurb(TOOLS_BLURB)}
+              onMouseLeave={() => setHoveredBlurb(null)}
+              onFocus={() => setHoveredBlurb(TOOLS_BLURB)}
+              onBlur={() => setHoveredBlurb(null)}
               className={`px-3.5 py-1.5 rounded-full text-[13px] font-medium tracking-tight transition-all flex items-center gap-1 ${
                 inToolsRoute
                   ? "bg-ink-light text-canvas-light dark:bg-ink-dark dark:text-canvas-dark shadow-sm"
@@ -264,6 +322,12 @@ export function Header() {
             )}
           </button>
         </div>
+      </div>
+      <div
+        aria-live="polite"
+        className="px-6 pb-2 max-w-[1600px] mx-auto text-center text-[11px] text-muted-light dark:text-muted-dark min-h-[18px] leading-snug"
+      >
+        {blurb}
       </div>
     </header>
   );

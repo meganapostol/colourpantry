@@ -37,15 +37,21 @@ export function LibraryPage() {
 
   return (
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full overflow-hidden">
-      <div className="flex items-center justify-between gap-3 pb-3 shrink-0 flex-wrap">
-        <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">recipes</span>
-          <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
-            Curated palettes.
-          </h1>
-          <span className="text-[11px] text-muted-light dark:text-muted-dark hidden md:inline">
-            {palettes.length} of {CURATED_PALETTES.length}
-          </span>
+      <div className="flex items-end justify-between gap-3 pb-3 shrink-0 flex-wrap">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="eyebrow text-muted-light dark:text-muted-dark">recipes</span>
+            <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
+              Curated palettes.
+            </h1>
+            <span className="text-[11px] text-muted-light dark:text-muted-dark">
+              {palettes.length} of {CURATED_PALETTES.length}
+            </span>
+          </div>
+          <p className="text-[12px] text-muted-light dark:text-muted-dark mt-1.5 max-w-xl leading-snug">
+            Hand-picked palettes for different moods and seasons. Drop one into your
+            stash with "+ Stash", or "Replace" to start fresh.
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input

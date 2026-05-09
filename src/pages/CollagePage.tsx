@@ -143,17 +143,23 @@ export function CollagePage() {
 
   return (
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
-      <div className="flex items-center justify-between gap-3 pb-3 shrink-0 flex-wrap">
-        <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">plate</span>
-          <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
-            Compose a moodboard.
-          </h1>
-          <span className="text-[11px] text-muted-light dark:text-muted-dark hidden md:inline">
-            {images.length === 0
-              ? "drop images to begin"
-              : `${images.length} image${images.length === 1 ? "" : "s"} · palette extracted`}
-          </span>
+      <div className="flex items-end justify-between gap-3 pb-3 shrink-0 flex-wrap">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="eyebrow text-muted-light dark:text-muted-dark">plate</span>
+            <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
+              Compose a moodboard.
+            </h1>
+            <span className="text-[11px] text-muted-light dark:text-muted-dark">
+              {images.length === 0
+                ? "drop images to begin"
+                : `${images.length} image${images.length === 1 ? "" : "s"}`}
+            </span>
+          </div>
+          <p className="text-[12px] text-muted-light dark:text-muted-dark mt-1.5 max-w-xl leading-snug">
+            Compose a moodboard from your reference images alongside your stash colours.
+            Export the whole thing as a single PNG or PDF.
+          </p>
         </div>
         {images.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">

@@ -12,9 +12,13 @@ export function HomePage() {
           <h1 className="font-display font-medium text-[22px] tracking-tight text-ink-light dark:text-ink-dark mt-0.5 leading-none">
             Pick a hue family.
           </h1>
+          <p className="text-[12px] text-muted-light dark:text-muted-dark mt-1.5 max-w-xl leading-snug">
+            Every hex code, organised by hue family. Open one to see every shade in that
+            family and click any cell to add it to your stash.
+          </p>
         </div>
         <div className="text-[12px] text-muted-light dark:text-muted-dark">
-          24 families · 15° each · click any tile to drill in
+          24 families · 15° each
         </div>
       </div>
 

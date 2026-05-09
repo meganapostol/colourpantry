@@ -121,15 +121,18 @@ export function GeneratePage() {
 
   return (
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
-      <div className="flex items-center justify-between gap-3 pb-3 shrink-0 flex-wrap">
-        <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">mix</span>
-          <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
-            Mix a palette.
-          </h1>
-          <span className="text-[11px] text-muted-light dark:text-muted-dark hidden md:inline">
-            {ruleMeta.blurb} · press <kbd className="px-1.5 py-0.5 rounded border border-line-light dark:border-line-dark font-mono text-[10px]">space</kbd> to shuffle
-          </span>
+      <div className="flex items-end justify-between gap-3 pb-3 shrink-0 flex-wrap">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="eyebrow text-muted-light dark:text-muted-dark">mix</span>
+            <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
+              Mix a palette.
+            </h1>
+          </div>
+          <p className="text-[12px] text-muted-light dark:text-muted-dark mt-1.5 max-w-xl leading-snug">
+            Generate a palette using a harmony rule. Lock the colours you like, shuffle
+            the rest. Press <kbd className="px-1 py-0.5 rounded border border-line-light dark:border-line-dark font-mono text-[10px]">space</kbd> to shuffle.
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div ref={harmonyRef} className="relative">

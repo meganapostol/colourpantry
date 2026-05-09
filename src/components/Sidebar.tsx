@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStash } from "../state/StashContext";
-import { FOLDERS, type FolderId } from "../lib/db";
+import { FOLDERS, type FolderId, getAllStashes, type Stash } from "../lib/db";
 import { exportJPG, exportPDF, exportPNG, exportSVG } from "../lib/exports";
 import {
   exportCSS,
@@ -33,6 +33,7 @@ export function Sidebar() {
     setGradient,
     setFontPair,
     startNewStash,
+    loadStash,
     customLogo,
     setCustomLogo,
   } = useStash();
@@ -41,7 +42,40 @@ export function Sidebar() {
   const [copyAllLabel, setCopyAllLabel] = useState("Copy All");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showLogoSettings, setShowLogoSettings] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [allStashes, setAllStashes] = useState<Stash[]>([]);
   const logoFileRef = useRef<HTMLInputElement>(null);
+  const switcherRef = useRef<HTMLDivElement>(null);
+
+  // Load all stashes when the switcher opens (and refresh whenever the active stash changes)
+  useEffect(() => {
+    if (!switcherOpen) return;
+    let cancelled = false;
+    getAllStashes().then((list) => {
+      if (!cancelled) setAllStashes(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [switcherOpen, stash.updatedAt]);
+
+  useEffect(() => {
+    if (!switcherOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setSwitcherOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSwitcherOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [switcherOpen]);
 
   if (collapsed) {
     return (
@@ -119,6 +153,7 @@ export function Sidebar() {
             value={stash.folder}
             onChange={(e) => setFolder(e.target.value as FolderId)}
             className="flex-1 text-[12px] bg-canvas-light dark:bg-canvas-dark border border-line-light dark:border-line-dark rounded-md px-2 py-1.5 text-ink-light dark:text-ink-dark cursor-pointer hover:bg-surface-light dark:hover:bg-surface-dark"
+            title="Folder"
           >
             {FOLDERS.map((f) => (
               <option key={f.id} value={f.id}>
@@ -126,13 +161,129 @@ export function Sidebar() {
               </option>
             ))}
           </select>
-          <button
-            onClick={startNewStash}
-            className="text-[12px] px-2.5 py-1.5 rounded-md text-muted-light dark:text-muted-dark hover:bg-canvas-light dark:hover:bg-canvas-dark hover:text-ink-light dark:hover:text-ink-dark"
-            title="Start a new stash"
-          >
-            + new
-          </button>
+          <div ref={switcherRef} className="relative">
+            <button
+              onClick={() => setSwitcherOpen((v) => !v)}
+              className="text-[12px] px-2.5 py-1.5 rounded-md text-muted-light dark:text-muted-dark hover:bg-canvas-light dark:hover:bg-canvas-dark hover:text-ink-light dark:hover:text-ink-dark flex items-center gap-1"
+              title="Switch to another stash"
+              aria-haspopup="menu"
+              aria-expanded={switcherOpen}
+            >
+              switch
+              <svg
+                width="9"
+                height="9"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform ${switcherOpen ? "rotate-180" : ""}`}
+                aria-hidden
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            {switcherOpen && (
+              <div
+                role="menu"
+                className="absolute top-[calc(100%+6px)] right-0 w-72 max-h-[60vh] rounded-xl border border-line-light dark:border-line-dark bg-canvas-light dark:bg-canvas-dark shadow-lift overflow-hidden z-30 flex flex-col"
+              >
+                <div className="px-3 pt-2.5 pb-1.5 border-b border-line-light dark:border-line-dark">
+                  <div className="eyebrow text-muted-light dark:text-muted-dark text-[10px]">
+                    Switch stash
+                  </div>
+                  <div className="text-[10px] text-muted-light dark:text-muted-dark mt-1 leading-snug">
+                    Load a previous stash without leaving this page.
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto scroll-thin p-1">
+                  {allStashes.length === 0 ? (
+                    <div className="px-3 py-4 text-[11px] text-muted-light dark:text-muted-dark italic">
+                      No saved stashes yet.
+                    </div>
+                  ) : (
+                    allStashes.map((s) => {
+                      const active = s.id === stash.id;
+                      const folderLabel =
+                        FOLDERS.find((f) => f.id === s.folder)?.label ?? s.folder;
+                      return (
+                        <button
+                          key={s.id}
+                          role="menuitem"
+                          onClick={() => {
+                            if (!active) loadStash(s.id);
+                            setSwitcherOpen(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-2 rounded-md transition-colors ${
+                            active
+                              ? "bg-surface-light dark:bg-surface-dark"
+                              : "hover:bg-surface-light dark:hover:bg-surface-dark"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[12px] font-medium text-ink-light dark:text-ink-dark truncate">
+                              {s.name || "Untitled Stash"}
+                            </span>
+                            {active && (
+                              <span className="text-[9px] font-mono uppercase tracking-wider text-muted-light dark:text-muted-dark shrink-0">
+                                current
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-light dark:text-muted-dark mt-0.5">
+                            <span>{folderLabel}</span>
+                            <span aria-hidden>·</span>
+                            <span>
+                              {s.swatches.length}{" "}
+                              {s.swatches.length === 1 ? "swatch" : "swatches"}
+                            </span>
+                          </div>
+                          {s.swatches.length > 0 && (
+                            <div className="flex gap-0.5 mt-1.5">
+                              {s.swatches.slice(0, 8).map((sw) => (
+                                <div
+                                  key={sw.hex}
+                                  className="w-3.5 h-3.5 rounded-sm shrink-0"
+                                  style={{ background: sw.hex }}
+                                  aria-hidden
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="border-t border-line-light dark:border-line-dark p-1">
+                  <button
+                    onClick={() => {
+                      startNewStash();
+                      setSwitcherOpen(false);
+                    }}
+                    className="w-full text-left px-2.5 py-2 rounded-md text-[12px] font-medium text-ink-light dark:text-ink-dark hover:bg-surface-light dark:hover:bg-surface-dark flex items-center gap-2"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Start a fresh stash
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

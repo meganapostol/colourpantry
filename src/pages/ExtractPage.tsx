@@ -83,19 +83,21 @@ export function ExtractPage() {
 
   return (
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
-      <div className="flex items-center justify-between gap-3 pb-3 shrink-0">
-        <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">pluck</span>
-          <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
-            Image palette.
-          </h1>
-          <span className="text-[11px] text-muted-light dark:text-muted-dark hidden md:inline">
-            {imgUrl
-              ? loading
-                ? "extracting…"
-                : `${palette.length} dominant colors`
-              : "drop an image to begin"}
-          </span>
+      <div className="flex items-end justify-between gap-3 pb-3 shrink-0">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="eyebrow text-muted-light dark:text-muted-dark">pluck</span>
+            <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
+              Image palette.
+            </h1>
+            <span className="text-[11px] text-muted-light dark:text-muted-dark">
+              {imgUrl ? (loading ? "extracting…" : `${palette.length} dominant colours`) : null}
+            </span>
+          </div>
+          <p className="text-[12px] text-muted-light dark:text-muted-dark mt-1.5 max-w-xl leading-snug">
+            Drop in a photo and pluck a palette from it. Click any swatch to add it to
+            your stash, then refine from there.
+          </p>
         </div>
         {imgUrl && (
           <div className="flex items-center gap-2 shrink-0">
