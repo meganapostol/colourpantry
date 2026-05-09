@@ -16,7 +16,7 @@ export const CVD_MODES: Array<{
   label: string;
   hint: string;
 }> = [
-  { id: "none", label: "Normal vision", hint: "no simulation" },
+  { id: "none", label: "Unfiltered", hint: "no simulation" },
   { id: "deuteranomaly", label: "Deuteranomaly", hint: "green-weak · ~5% of men" },
   { id: "deuteranopia", label: "Deuteranopia", hint: "green-blind · ~1% of men" },
   { id: "protanomaly", label: "Protanomaly", hint: "red-weak · ~1% of men" },
