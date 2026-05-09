@@ -80,6 +80,18 @@ export function PrivacyPage() {
           </section>
 
           <section>
+            <h2 className="font-display font-medium text-xl tracking-tight mb-2">
+              Contact form
+            </h2>
+            <p>
+              If you fill out the contact form, your message and email address are passed
+              through a transactional email service (Resend) and forwarded to a private
+              inbox. The site does not store your message anywhere; only the operator's
+              inbox keeps a copy. Email addresses are used solely to reply.
+            </p>
+          </section>
+
+          <section>
             <h2 className="font-display font-medium text-xl tracking-tight mb-2">Cookies</h2>
             <p>
               The site does not set any cookies. Theme and accessibility preferences are stored in

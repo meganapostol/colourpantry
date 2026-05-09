@@ -16,6 +16,13 @@ export function Footer() {
           </Link>
           <span aria-hidden>·</span>
           <Link
+            to="/contact"
+            className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
+          >
+            contact
+          </Link>
+          <span aria-hidden>·</span>
+          <Link
             to="/privacy"
             className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
           >
