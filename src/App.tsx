@@ -23,7 +23,8 @@ import { LibraryPage } from "./pages/LibraryPage";
 import { LookupPage } from "./pages/LookupPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { TermsPage } from "./pages/TermsPage";
-import { ContactPage } from "./pages/ContactPage";
+import { FeedbackPage } from "./pages/FeedbackPage";
+import { AdminFeedbackPage } from "./pages/AdminFeedbackPage";
 import { BlogPage } from "./pages/BlogPage";
 import { BlogPostPage } from "./pages/BlogPostPage";
 
@@ -54,7 +55,8 @@ function CVDFilteredContent() {
             <Route path="/lookup" element={<LookupPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
-            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
+            <Route path="/admin/feedback" element={<AdminFeedbackPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/bibles" element={<Navigate to="/stashes" replace />} />

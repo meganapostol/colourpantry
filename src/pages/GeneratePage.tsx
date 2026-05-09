@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generatePalette, HARMONY_RULES, type HarmonyRule } from "../lib/harmony";
 import { nameForHex, readableTextOn } from "../lib/color";
 import { useStash } from "../state/StashContext";
@@ -15,6 +15,26 @@ export function GeneratePage() {
   );
   const [locked, setLocked] = useState<boolean[]>(() => Array(5).fill(false));
   const [popping, setPopping] = useState<number | null>(null);
+  const [harmonyOpen, setHarmonyOpen] = useState(false);
+  const harmonyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!harmonyOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (harmonyRef.current && !harmonyRef.current.contains(e.target as Node)) {
+        setHarmonyOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setHarmonyOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [harmonyOpen]);
 
   const regenerate = useCallback(() => {
     setColors((prev) => {
@@ -112,18 +132,89 @@ export function GeneratePage() {
           </span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={rule}
-            onChange={(e) => setRule(e.target.value as HarmonyRule)}
-            className="text-[12px] bg-surface-light dark:bg-surface-dark border border-line-light dark:border-line-dark rounded-full px-3 py-1.5 text-ink-light dark:text-ink-dark cursor-pointer hover:bg-canvas-light dark:hover:bg-canvas-dark"
-            title="Harmony rule"
-          >
-            {HARMONY_RULES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
+          <div ref={harmonyRef} className="relative">
+            <button
+              onClick={() => setHarmonyOpen((v) => !v)}
+              className="text-[12px] bg-surface-light dark:bg-surface-dark border border-line-light dark:border-line-dark rounded-full pl-3 pr-2 py-1.5 text-ink-light dark:text-ink-dark cursor-pointer hover:bg-canvas-light dark:hover:bg-canvas-dark flex items-center gap-1.5"
+              aria-haspopup="menu"
+              aria-expanded={harmonyOpen}
+              title="Pick a harmony rule"
+            >
+              <span className="font-medium">{ruleMeta.label}</span>
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform ${harmonyOpen ? "rotate-180" : ""}`}
+                aria-hidden
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            {harmonyOpen && (
+              <div
+                role="menu"
+                className="absolute top-[calc(100%+8px)] right-0 w-80 max-w-[90vw] rounded-2xl border border-line-light dark:border-line-dark bg-canvas-light dark:bg-canvas-dark shadow-lift overflow-hidden p-1 z-30"
+              >
+                <div className="px-3 pt-2 pb-1">
+                  <div className="eyebrow text-muted-light dark:text-muted-dark text-[10px]">
+                    Harmony rule
+                  </div>
+                  <p className="text-[10px] text-muted-light dark:text-muted-dark mt-1 leading-snug">
+                    A harmony rule is the relationship the generator uses to pick colours
+                    around the colour wheel. Different rules give different moods.
+                  </p>
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto scroll-thin">
+                  {HARMONY_RULES.map((r) => {
+                    const active = rule === r.id;
+                    return (
+                      <button
+                        key={r.id}
+                        role="menuitemradio"
+                        aria-checked={active}
+                        onClick={() => {
+                          setRule(r.id);
+                          setHarmonyOpen(false);
+                        }}
+                        className={`w-full flex flex-col items-start text-left px-3 py-2 rounded-lg transition-colors ${
+                          active
+                            ? "bg-surface-light dark:bg-surface-dark text-ink-light dark:text-ink-dark"
+                            : "hover:bg-surface-light dark:hover:bg-surface-dark text-ink-light dark:text-ink-dark"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 text-[13px] font-medium tracking-tight">
+                          {active && (
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          )}
+                          <span className={active ? "" : "ml-[19px]"}>{r.label}</span>
+                        </span>
+                        <span className="text-[11px] text-muted-light dark:text-muted-dark ml-[19px]">
+                          {r.blurb}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-light dark:bg-surface-dark border border-line-light dark:border-line-dark rounded-full">
             <span className="text-[11px] text-muted-light dark:text-muted-dark uppercase tracking-wider">colors</span>
             <button

@@ -81,13 +81,14 @@ export function PrivacyPage() {
 
           <section>
             <h2 className="font-display font-medium text-xl tracking-tight mb-2">
-              Contact form
+              Feedback box
             </h2>
             <p>
-              If you fill out the contact form, your message and email address are passed
-              through a transactional email service (Resend) and forwarded to a private
-              inbox. The site does not store your message anywhere; only the operator's
-              inbox keeps a copy. Email addresses are used solely to reply.
+              If you submit feedback, your message (and your email address, if you choose
+              to include one) is stored in a private database hosted by Vercel and is only
+              visible to the operator of the site. Submissions are not used for marketing
+              and the operator may not reply. If you'd rather your email not be saved
+              alongside your message, just leave that field blank.
             </p>
           </section>
 

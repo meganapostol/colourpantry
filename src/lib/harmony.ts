@@ -11,14 +11,46 @@ export type HarmonyRule =
   | "shades";
 
 export const HARMONY_RULES: Array<{ id: HarmonyRule; label: string; blurb: string }> = [
-  { id: "random", label: "Random", blurb: "Across-the-wheel surprise" },
-  { id: "analogous", label: "Analogous", blurb: "Neighbouring hues, harmonious" },
-  { id: "complementary", label: "Complementary", blurb: "Opposite hues, high tension" },
-  { id: "split-complementary", label: "Split", blurb: "Base + two near-opposites" },
-  { id: "triadic", label: "Triadic", blurb: "Three hues, evenly spaced" },
-  { id: "tetradic", label: "Tetradic", blurb: "Four hues, two pairs" },
-  { id: "monochromatic", label: "Monochromatic", blurb: "Single hue, lightness sweep" },
-  { id: "shades", label: "Shades", blurb: "Light to dark of one hue" },
+  {
+    id: "random",
+    label: "Random",
+    blurb: "Different hues with no rule. Maximum variety.",
+  },
+  {
+    id: "analogous",
+    label: "Analogous",
+    blurb: "Neighbouring hues on the wheel. Calm and harmonious.",
+  },
+  {
+    id: "complementary",
+    label: "Complementary",
+    blurb: "Hues directly opposite each other. High contrast, dramatic.",
+  },
+  {
+    id: "split-complementary",
+    label: "Split",
+    blurb: "Your base plus the two hues beside its opposite. Bold but balanced.",
+  },
+  {
+    id: "triadic",
+    label: "Triadic",
+    blurb: "Three hues spaced evenly around the wheel. Lively and even.",
+  },
+  {
+    id: "tetradic",
+    label: "Tetradic",
+    blurb: "Four hues, two pairs of opposites. Rich, harder to balance.",
+  },
+  {
+    id: "monochromatic",
+    label: "Monochromatic",
+    blurb: "One hue, varied by lightness and saturation. Quiet and cohesive.",
+  },
+  {
+    id: "shades",
+    label: "Shades",
+    blurb: "One hue stepped from light to dark. A simple scale.",
+  },
 ];
 
 function clampInGamut(L: number, C: number, H: number): string {
