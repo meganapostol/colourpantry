@@ -19,9 +19,12 @@ import { ContrastPage } from "./pages/ContrastPage";
 import { VisualizePage } from "./pages/VisualizePage";
 import { CollagePage } from "./pages/CollagePage";
 import { GradientsPage } from "./pages/GradientsPage";
-import { FontsPage } from "./pages/FontsPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { LookupPage } from "./pages/LookupPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { TermsPage } from "./pages/TermsPage";
+import { BlogPage } from "./pages/BlogPage";
+import { BlogPostPage } from "./pages/BlogPostPage";
 
 function CVDFilteredContent() {
   const { mode } = useCVD();
@@ -46,9 +49,12 @@ function CVDFilteredContent() {
             <Route path="/visualize" element={<VisualizePage />} />
             <Route path="/collage" element={<CollagePage />} />
             <Route path="/gradients" element={<GradientsPage />} />
-            <Route path="/fonts" element={<FontsPage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/lookup" element={<LookupPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/bibles" element={<Navigate to="/stashes" replace />} />
           </Routes>
         </div>

@@ -6,21 +6,20 @@ import chroma from "chroma-js";
 
 const PRIMARY_TABS = [
   { to: "/", label: "Home", end: true },
-  { to: "/generate", label: "Generate" },
-  { to: "/library", label: "Library" },
+  { to: "/generate", label: "Mix" },
+  { to: "/library", label: "Recipes" },
+  { to: "/lookup", label: "Taste" },
   { to: "/stashes", label: "Stashes" },
 ];
 
 const TOOL_TABS: Array<{ to: string; label: string; blurb: string }> = [
-  { to: "/lookup", label: "Lookup", blurb: "Probe a single hex code" },
   { to: "/skin", label: "Skin tones", blurb: "Calibrated tonal rows" },
-  { to: "/extract", label: "Extract", blurb: "Pick palette from image" },
-  { to: "/collage", label: "Collage", blurb: "Compose images + palette" },
-  { to: "/variations", label: "Variations", blurb: "Tints, shades, hues" },
-  { to: "/contrast", label: "Contrast", blurb: "WCAG pairwise grid" },
-  { to: "/visualize", label: "Visualize", blurb: "Apply to UI mockups" },
-  { to: "/gradients", label: "Gradients", blurb: "Compose & save" },
-  { to: "/fonts", label: "Fonts", blurb: "Pair the type" },
+  { to: "/extract", label: "Pluck", blurb: "Pick palette from image" },
+  { to: "/collage", label: "Plate", blurb: "Compose images + palette" },
+  { to: "/variations", label: "Spice", blurb: "Tints, shades, hues" },
+  { to: "/contrast", label: "Pair", blurb: "WCAG pairwise grid" },
+  { to: "/visualize", label: "Serve", blurb: "Apply to UI mockups" },
+  { to: "/gradients", label: "Pour", blurb: "Compose & save gradients" },
 ];
 
 const LOGO_TEXT = "colour pantry";

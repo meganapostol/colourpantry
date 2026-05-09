@@ -86,7 +86,7 @@ export function VisualizePage() {
     return (
       <div className="canvas-grain h-full flex flex-col items-center justify-center px-4 max-w-[1600px] mx-auto w-full">
         <div className="text-center space-y-3 max-w-md">
-          <div className="eyebrow text-muted-light dark:text-muted-dark">visualize</div>
+          <div className="eyebrow text-muted-light dark:text-muted-dark">serve</div>
           <h1 className="font-display font-medium text-2xl tracking-tight text-ink-light dark:text-ink-dark display-tight">
             Add colors to your stash first.
           </h1>
@@ -107,7 +107,7 @@ export function VisualizePage() {
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full overflow-hidden">
       <div className="flex items-center justify-between gap-3 pb-3 shrink-0 flex-wrap">
         <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">visualize</span>
+          <span className="eyebrow text-muted-light dark:text-muted-dark">serve</span>
           <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
             See it on real things.
           </h1>

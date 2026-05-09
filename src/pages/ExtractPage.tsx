@@ -85,7 +85,7 @@ export function ExtractPage() {
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
       <div className="flex items-center justify-between gap-3 pb-3 shrink-0">
         <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">extract</span>
+          <span className="eyebrow text-muted-light dark:text-muted-dark">pluck</span>
           <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
             Image palette.
           </h1>

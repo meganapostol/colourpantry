@@ -145,7 +145,7 @@ export function CollagePage() {
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full">
       <div className="flex items-center justify-between gap-3 pb-3 shrink-0 flex-wrap">
         <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">collage</span>
+          <span className="eyebrow text-muted-light dark:text-muted-dark">plate</span>
           <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
             Compose a moodboard.
           </h1>

@@ -154,9 +154,9 @@ export function LookupPage() {
     <div className="canvas-grain h-full flex flex-col px-4 pt-3 pb-3 max-w-[1600px] mx-auto w-full overflow-y-auto scroll-thin">
       <div className="flex items-center justify-between gap-3 pb-3 shrink-0 flex-wrap">
         <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">lookup</span>
+          <span className="eyebrow text-muted-light dark:text-muted-dark">taste</span>
           <h1 className="font-display font-medium text-xl tracking-tight text-ink-light dark:text-ink-dark leading-none">
-            Look up a hex.
+            Taste a hex.
           </h1>
           <span className="text-[11px] text-muted-light dark:text-muted-dark hidden md:inline">
             neighbours, accessibility, and palettes that suit it

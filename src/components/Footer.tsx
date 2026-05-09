@@ -1,9 +1,32 @@
+import { Link } from "react-router-dom";
+
 export function Footer() {
   return (
     <footer className="border-t border-line-light dark:border-line-dark shrink-0">
       <div className="max-w-[1600px] mx-auto px-6 py-1.5 flex items-center justify-between gap-3 text-[11px] text-muted-light dark:text-muted-dark">
         <span>colour pantry · free forever · no signup, no backend</span>
         <div className="flex items-center gap-2">
+          <Link
+            to="/blog"
+            className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
+          >
+            blog
+          </Link>
+          <span aria-hidden>·</span>
+          <Link
+            to="/privacy"
+            className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
+          >
+            privacy
+          </Link>
+          <span aria-hidden>·</span>
+          <Link
+            to="/terms"
+            className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
+          >
+            terms
+          </Link>
+          <span aria-hidden>·</span>
           <a
             href="https://github.com/meganapostol/colourpantry"
             target="_blank"
