@@ -93,16 +93,6 @@ export function TermsPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="font-display font-medium text-xl tracking-tight mb-2">Contact</h2>
-            <p>
-              Questions can go to{" "}
-              <a href="mailto:hello@colourpantry.com" className="underline hover:opacity-70">
-                hello@colourpantry.com
-              </a>
-              .
-            </p>
-          </section>
         </div>
       </div>
     </div>

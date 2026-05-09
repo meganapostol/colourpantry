@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+const TIP_JAR_URL = "https://buy.stripe.com/REPLACE_WITH_STRIPE_PAYMENT_LINK";
+
 export function Footer() {
   return (
     <footer className="border-t border-line-light dark:border-line-dark shrink-0">
@@ -26,6 +28,16 @@ export function Footer() {
           >
             terms
           </Link>
+          <span aria-hidden>·</span>
+          <a
+            href={TIP_JAR_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
+            title="Drop a tip if the pantry's been useful"
+          >
+            tip jar
+          </a>
           <span aria-hidden>·</span>
           <a
             href="https://github.com/meganapostol/colourpantry"
