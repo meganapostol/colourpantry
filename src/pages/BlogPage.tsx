@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BLOG_POSTS } from "../lib/blogPosts";
+import { getPublishedPosts } from "../lib/blogPosts";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -10,7 +10,7 @@ function formatDate(iso: string): string {
 }
 
 export function BlogPage() {
-  const sorted = [...BLOG_POSTS].sort((a, b) =>
+  const sorted = getPublishedPosts().sort((a, b) =>
     b.publishedAt.localeCompare(a.publishedAt),
   );
 

@@ -9,6 +9,7 @@ export interface BlogPost {
   readingMinutes: number;
   tags: string[];
   body: () => ReactNode;
+  published: boolean;
 }
 
 const Para = ({ children }: { children: ReactNode }) => (
@@ -40,6 +41,7 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-05-08",
     readingMinutes: 4,
     tags: ["colour theory", "oklch", "design"],
+    published: false,
     body: () => (
       <>
         <Para>
@@ -108,19 +110,20 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-05-09",
     readingMinutes: 5,
     tags: ["accessibility", "a11y", "colour vision"],
+    published: true,
     body: () => (
       <>
         <Para>
-          Colour vision deficiency (CVD) — the catch-all term for what gets called
-          "colour-blindness" — affects about 8% of men and 0.5% of women globally. Most CVD
-          users don't see in greyscale; they see colour, but with reduced sensitivity in certain
-          parts of the spectrum. The most common forms (deuteranomaly and protanomaly) compress
-          reds and greens together. Tritan deficiency, which affects blues and yellows, is much
-          rarer.
+          Colour vision deficiency (CVD) is the catch-all term for what's often called
+          "colour-blindness". It affects about 8% of men and 0.5% of women globally. Most people
+          with CVD don't see in greyscale; they see colour, but with reduced sensitivity in
+          certain parts of the spectrum. The most common forms (deuteranomaly and protanomaly)
+          compress reds and greens together. Tritan deficiency, which affects blues and yellows,
+          is much rarer.
         </Para>
         <Para>
-          When you design something where <em>the colour is the meaning</em> — a red error
-          state, a green success badge, a chart with five colour-coded series — you're making
+          When you design something where <em>the colour is the meaning</em> (a red error state,
+          a green success badge, a chart with five colour-coded series), you're making
           assumptions about what the user can see. CVD users won't be lost, but they'll be
           working harder than they should.
         </Para>
@@ -151,15 +154,15 @@ export const BLOG_POSTS: BlogPost[] = [
           </li>
           <li>
             <strong>Run your palette through a CVD simulator.</strong> Don't guess. The brain is
-            very good at filling in colour you "remember" — a simulator strips that away.
+            very good at filling in colour you "remember", and a simulator strips that away.
           </li>
         </UL>
         <H2>How to test in Colour Pantry</H2>
         <Para>
           The A11y dropdown in the top-right of the app applies a colour-vision-deficiency
           simulation to the entire page. Switch it to deuteranopia and walk through your stash.
-          Anything that suddenly looks similar to its neighbour is a candidate for adjustment —
-          either pull the lightness apart or add a non-colour signal.
+          Anything that suddenly looks similar to its neighbour is a candidate for adjustment.
+          Either pull the lightness apart or add a non-colour signal.
         </Para>
         <Para>
           The <Link to="/lookup" className="underline hover:opacity-70">Taste page</Link> shows a
@@ -167,10 +170,19 @@ export const BLOG_POSTS: BlogPost[] = [
           critical brand colour and want to confirm it stays distinct from the neighbours you're
           planning to pair it with.
         </Para>
+        <H2>And if it might be you</H2>
+        <Para>
+          Most people with mild CVD never get formally tested. The early signs are easy to
+          dismiss: struggling to tell rose from grey, mistaking ripe fruit for unripe, finding
+          traffic lights ambiguous in certain weather. If anything in this post sounded familiar
+          to you, it's worth checking. An optometrist can confirm it in a single visit, and there
+          are quick online Ishihara tests as a free starting point. CVD is hereditary, common,
+          and changes nothing about how good your eye for design is. Knowing just helps.
+        </Para>
         <H2>The deeper point</H2>
         <Para>
           Designing for CVD is not a separate accessibility checklist. It's just a forcing
-          function for designing with redundancy — making sure meaning is communicated through
+          function for designing with redundancy: making sure meaning is communicated through
           more than one channel. That redundancy helps CVD users, but it also helps anyone
           glancing at a low-contrast monitor in bright sunlight, or skimming the screen at
           arm's length, or reading a printout.
@@ -186,6 +198,7 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-05-09",
     readingMinutes: 4,
     tags: ["branding", "palettes", "workflow"],
+    published: false,
     body: () => (
       <>
         <Para>
@@ -267,6 +280,7 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-05-10",
     readingMinutes: 4,
     tags: ["palettes", "seasons", "branding"],
+    published: false,
     body: () => (
       <>
         <Para>
@@ -330,6 +344,10 @@ export const BLOG_POSTS: BlogPost[] = [
   },
 ];
 
+export function getPublishedPosts(): BlogPost[] {
+  return BLOG_POSTS.filter((p) => p.published);
+}
+
 export function getPostBySlug(slug: string): BlogPost | undefined {
-  return BLOG_POSTS.find((p) => p.slug === slug);
+  return BLOG_POSTS.find((p) => p.slug === slug && p.published);
 }

@@ -7,6 +7,13 @@ export function Footer() {
         <span>colour pantry · free forever · no signup, no backend</span>
         <div className="flex items-center gap-2">
           <Link
+            to="/blog"
+            className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
+          >
+            blog
+          </Link>
+          <span aria-hidden>·</span>
+          <Link
             to="/privacy"
             className="hover:text-ink-light dark:hover:text-ink-dark transition-colors"
           >

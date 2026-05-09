@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { BLOG_POSTS, getPostBySlug } from "../lib/blogPosts";
+import { getPostBySlug, getPublishedPosts } from "../lib/blogPosts";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -48,7 +48,7 @@ export function BlogPostPage() {
             That URL doesn't match any of our notes. Maybe you were looking for one of these:
           </p>
           <ul className="mt-4 space-y-2">
-            {BLOG_POSTS.map((p) => (
+            {getPublishedPosts().map((p) => (
               <li key={p.slug}>
                 <Link
                   to={`/blog/${p.slug}`}
@@ -64,7 +64,7 @@ export function BlogPostPage() {
     );
   }
 
-  const others = BLOG_POSTS.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const others = getPublishedPosts().filter((p) => p.slug !== post.slug).slice(0, 3);
 
   return (
     <div className="canvas-grain h-full overflow-y-auto scroll-thin">
