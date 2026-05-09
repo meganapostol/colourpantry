@@ -15,7 +15,7 @@ const LEVEL_BADGE: Record<WCAGLevel, string> = {
 
 export function ContrastPage() {
   const { stash } = useStash();
-  const [hovered, setHovered] = useState<{ bg: string; fg: string } | null>(null);
+  const [selected, setSelected] = useState<{ bg: string; fg: string } | null>(null);
 
   const swatches = stash.swatches;
 
@@ -63,7 +63,7 @@ export function ContrastPage() {
           </div>
           <p className="text-[12px] text-muted-light dark:text-muted-dark mt-1.5 max-w-xl leading-snug">
             Every pair of colours in your stash, checked against WCAG contrast ratios.
-            Hover any cell to preview that pair as text.
+            Click any cell to lock a preview of that pair as text.
           </p>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -76,26 +76,46 @@ export function ContrastPage() {
       </div>
 
       {/* Live preview row */}
-      <div className="shrink-0 mb-4 rounded-xl border border-line-light dark:border-line-dark overflow-hidden">
-        {hovered ? (
-          <div
-            className="px-6 py-5 flex items-center justify-between gap-6"
-            style={{ background: hovered.bg, color: hovered.fg }}
-          >
-            <div>
-              <div className="text-[11px] uppercase tracking-widest opacity-70">Live preview</div>
-              <div className="font-display font-medium text-2xl mt-1 tracking-tight">The quick brown fox</div>
-              <div className="text-sm mt-0.5 opacity-90">jumps over the lazy dog · 14pt body</div>
+      <div className="shrink-0 mb-4 rounded-xl border border-line-light dark:border-line-dark overflow-hidden relative">
+        {selected ? (
+          <>
+            <div
+              className="px-6 py-5 flex items-center justify-between gap-6"
+              style={{ background: selected.bg, color: selected.fg }}
+            >
+              <div>
+                <div className="text-[11px] uppercase tracking-widest opacity-70">Preview</div>
+                <div className="font-display font-medium text-2xl mt-1 tracking-tight">
+                  The quick brown fox
+                </div>
+                <div className="text-sm mt-0.5 opacity-90">
+                  jumps over the lazy dog · 14pt body
+                </div>
+              </div>
+              <div className="text-right font-mono text-[12px]">
+                <div className="text-2xl font-semibold">
+                  {contrastRatio(selected.bg, selected.fg).toFixed(2)}
+                </div>
+                <div className="opacity-80">
+                  {levelDescription(wcagLevel(contrastRatio(selected.bg, selected.fg)))}
+                </div>
+                <div className="opacity-70 mt-1">
+                  {selected.fg} on {selected.bg}
+                </div>
+              </div>
             </div>
-            <div className="text-right font-mono text-[12px]">
-              <div className="text-2xl font-semibold">{contrastRatio(hovered.bg, hovered.fg).toFixed(2)}</div>
-              <div className="opacity-80">{levelDescription(wcagLevel(contrastRatio(hovered.bg, hovered.fg)))}</div>
-              <div className="opacity-70 mt-1">{hovered.fg} on {hovered.bg}</div>
-            </div>
-          </div>
+            <button
+              onClick={() => setSelected(null)}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/30 backdrop-blur text-white text-base flex items-center justify-center hover:bg-black/50"
+              aria-label="Clear preview"
+              title="Clear preview"
+            >
+              ×
+            </button>
+          </>
         ) : (
           <div className="px-6 py-5 text-[12px] text-muted-light dark:text-muted-dark italic">
-            Hover any cell below to preview text contrast in this strip.
+            Click any cell below to preview that pair here as text.
           </div>
         )}
       </div>
@@ -129,31 +149,46 @@ export function ContrastPage() {
                   const ratio = contrastRatio(bg.hex, fg.hex);
                   const lvl = wcagLevel(ratio);
                   const same = bg.hex === fg.hex;
+                  const isSelected =
+                    !!selected && selected.bg === bg.hex && selected.fg === fg.hex;
                   return (
                     <td
                       key={`${bg.hex}-${fg.hex}`}
                       className="p-0 border-b border-r border-line-light/50 dark:border-line-dark/50"
-                      onMouseEnter={() => !same && setHovered({ bg: bg.hex, fg: fg.hex })}
-                      onMouseLeave={() => setHovered(null)}
                     >
-                      <div
-                        className="h-16 flex flex-col items-center justify-center px-2 cursor-default transition-transform hover:scale-[1.02]"
-                        style={{ background: bg.hex, color: fg.hex }}
-                        title={`${ratio.toFixed(2)} — ${levelDescription(lvl)}`}
-                      >
-                        {same ? (
+                      {same ? (
+                        <div
+                          className="h-16 flex items-center justify-center px-2"
+                          style={{ background: bg.hex, color: fg.hex }}
+                        >
                           <span className="text-[10px] opacity-50">—</span>
-                        ) : (
-                          <>
-                            <span className="font-mono text-[14px] font-semibold leading-none">
-                              {ratio.toFixed(2)}
-                            </span>
-                            <span className={`text-[9px] mt-1 px-1.5 py-0.5 rounded font-medium ${LEVEL_BADGE[lvl]} ${levelClass(lvl)}`}>
-                              {lvl}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) setSelected(null);
+                            else setSelected({ bg: bg.hex, fg: fg.hex });
+                          }}
+                          aria-pressed={isSelected}
+                          className={`relative w-full h-16 flex flex-col items-center justify-center px-2 transition-transform hover:scale-[1.04] hover:z-10 ${
+                            isSelected
+                              ? "ring-2 ring-amber-500 ring-inset z-10"
+                              : ""
+                          }`}
+                          style={{ background: bg.hex, color: fg.hex }}
+                          title={`${ratio.toFixed(2)} · ${levelDescription(lvl)} · click to preview`}
+                        >
+                          <span className="font-mono text-[14px] font-semibold leading-none">
+                            {ratio.toFixed(2)}
+                          </span>
+                          <span
+                            className={`text-[9px] mt-1 px-1.5 py-0.5 rounded font-medium ${LEVEL_BADGE[lvl]} ${levelClass(lvl)}`}
+                          >
+                            {lvl}
+                          </span>
+                        </button>
+                      )}
                     </td>
                   );
                 })}
