@@ -52,30 +52,22 @@ interface NeighborCell {
   isCenter: boolean;
 }
 
-function buildNeighborhood(hex: string, cols = 13, rows = 7): NeighborCell[][] {
+function buildNeighborStrip(hex: string, cols = 17): NeighborCell[] {
   const [Lraw, Craw, Hraw] = chroma(hex).oklch();
   const baseL = Number.isFinite(Lraw) ? Lraw : 0.55;
   const baseC = Number.isFinite(Craw) ? Math.max(0.02, Craw) : 0.08;
   const baseH = Number.isFinite(Hraw) ? Hraw : 0;
   const hSpan = 60;
-  const lSpan = 0.5;
-  const grid: NeighborCell[][] = [];
-  const midR = Math.floor(rows / 2);
-  const midC = Math.floor(cols / 2);
-  for (let r = 0; r < rows; r++) {
-    const tL = r / Math.max(1, rows - 1) - 0.5;
-    const Lr = Math.max(0.05, Math.min(0.97, baseL - tL * lSpan));
-    const row: NeighborCell[] = [];
-    for (let c = 0; c < cols; c++) {
-      const tH = c / Math.max(1, cols - 1) - 0.5;
-      const Hr = (baseH + tH * hSpan + 360) % 360;
-      const isCenter = r === midR && c === midC;
-      const cellHex = isCenter ? hex.toUpperCase() : clampInGamutHex(Lr, baseC, Hr);
-      row.push({ hex: cellHex, isCenter });
-    }
-    grid.push(row);
+  const out: NeighborCell[] = [];
+  const mid = Math.floor(cols / 2);
+  for (let c = 0; c < cols; c++) {
+    const tH = c / Math.max(1, cols - 1) - 0.5;
+    const Hr = (baseH + tH * hSpan + 360) % 360;
+    const isCenter = c === mid;
+    const cellHex = isCenter ? hex.toUpperCase() : clampInGamutHex(baseL, baseC, Hr);
+    out.push({ hex: cellHex, isCenter });
   }
-  return grid;
+  return out;
 }
 
 interface SeasonalMatch {
@@ -149,7 +141,7 @@ export function LookupPage() {
   const colorName = nameForHex(hex);
   const [L, C, H] = chroma(hex).oklch();
 
-  const neighbors = useMemo(() => buildNeighborhood(hex), [hex]);
+  const neighbors = useMemo(() => buildNeighborStrip(hex), [hex]);
   const harmonyPalette = useMemo(
     () => generatePalette({ rule: harmony, count: 6, baseHex: hex }),
     [hex, harmony],
@@ -217,30 +209,32 @@ export function LookupPage() {
           <div className="flex items-baseline gap-2">
             <span className="eyebrow text-ink-light dark:text-ink-dark">Neighbours</span>
             <span className="text-[11px] text-muted-light dark:text-muted-dark">
-              ±30° hue · ±25% lightness · click any to add · ringed cell is your hex
+              ±30° hue at this lightness · click any to add
             </span>
           </div>
         </div>
         <div
-          className="grid gap-1 rounded-xl border border-line-light dark:border-line-dark bg-surface-light dark:bg-surface-dark p-1.5"
-          style={{ gridTemplateColumns: `repeat(${neighbors[0].length}, minmax(0, 1fr))` }}
+          className="grid gap-1 rounded-xl border border-line-light dark:border-line-dark bg-surface-light dark:bg-surface-dark px-3 py-4"
+          style={{ gridTemplateColumns: `repeat(${neighbors.length}, minmax(0, 1fr))` }}
         >
-          {neighbors.flatMap((row, rIdx) =>
-            row.map((cell, cIdx) => (
-              <button
-                key={`${rIdx}-${cIdx}`}
-                className={`relative aspect-square rounded-md hover:scale-110 hover:z-10 transition-transform ${cell.isCenter ? "ring-2 ring-amber-400 z-10" : ""}`}
-                style={{ background: cell.hex }}
-                onClick={() => addSwatch(cell.hex)}
-                onMouseEnter={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  showHexTooltip(cell.hex, r.left + r.width / 2, r.bottom);
-                }}
-                onMouseLeave={hideHexTooltip}
-                aria-label={`Add ${cell.hex}`}
-              />
-            )),
-          )}
+          {neighbors.map((cell, cIdx) => (
+            <button
+              key={cIdx}
+              className={`relative h-12 rounded-md transition-transform ${
+                cell.isCenter
+                  ? "z-10 scale-[1.18] ring-4 ring-amber-500 ring-offset-[3px] ring-offset-surface-light dark:ring-offset-surface-dark shadow-lift"
+                  : "hover:scale-110 hover:z-10"
+              }`}
+              style={{ background: cell.hex }}
+              onClick={() => addSwatch(cell.hex)}
+              onMouseEnter={(e) => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                showHexTooltip(cell.hex, r.left + r.width / 2, r.bottom);
+              }}
+              onMouseLeave={hideHexTooltip}
+              aria-label={`Add ${cell.hex}`}
+            />
+          ))}
         </div>
       </section>
 
