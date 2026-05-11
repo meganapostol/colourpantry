@@ -21,6 +21,7 @@ import { CollagePage } from "./pages/CollagePage";
 import { GradientsPage } from "./pages/GradientsPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { LookupPage } from "./pages/LookupPage";
+import { GlazePage } from "./pages/GlazePage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { TermsPage } from "./pages/TermsPage";
 import { FeedbackPage } from "./pages/FeedbackPage";
@@ -53,6 +54,7 @@ function CVDFilteredContent() {
             <Route path="/gradients" element={<GradientsPage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/lookup" element={<LookupPage />} />
+            <Route path="/glaze" element={<GlazePage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/feedback" element={<FeedbackPage />} />

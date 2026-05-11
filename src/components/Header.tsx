@@ -48,6 +48,7 @@ const TOOLS_BLURB = "Specialised tools for skin tones, images, contrast, gradien
 const TOOL_TABS: Array<{ to: string; label: string; blurb: string }> = [
   { to: "/skin", label: "Skin tones", blurb: "Calibrated tonal rows for any undertone." },
   { to: "/extract", label: "Pluck", blurb: "Drop in a photo, pluck a palette from it." },
+  { to: "/glaze", label: "Glaze", blurb: "Paint a screenshot or photo in your stash's colours." },
   { to: "/collage", label: "Plate", blurb: "Compose a moodboard from images and stash colours." },
   { to: "/variations", label: "Spice", blurb: "Tints, shades, tones, hue shifts, saturation sweeps." },
   { to: "/contrast", label: "Pair", blurb: "Every pair in your stash checked against WCAG contrast." },
