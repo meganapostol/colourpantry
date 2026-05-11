@@ -1,8 +1,10 @@
 import { getPaletteSync } from "colorthief";
 import html2canvas from "html2canvas";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useStash } from "../state/StashContext";
 import { nameForHex, readableTextOn } from "../lib/color";
+import { usePasteImage } from "../lib/usePasteImage";
+import { PasteButton } from "../components/PasteButton";
 
 interface CollageImage {
   id: string;
@@ -57,6 +59,9 @@ export function CollagePage() {
       reader.readAsDataURL(file);
     });
   };
+
+  const addPastedImage = useCallback((file: File) => addFiles([file]), []);
+  usePasteImage(addPastedImage);
 
   // Recompute combined palette when images change
   useEffect(() => {
@@ -188,6 +193,12 @@ export function CollagePage() {
                 onChange={(e) => e.target.files && addFiles(e.target.files)}
               />
             </label>
+            <PasteButton
+              onImage={addPastedImage}
+              className="btn-pill border border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:bg-surface-light dark:hover:bg-surface-dark"
+            >
+              Paste
+            </PasteButton>
             <button
               onClick={onSavePalette}
               disabled={palette.length === 0}
@@ -238,6 +249,35 @@ export function CollagePage() {
             </div>
             <div className="text-sm text-muted-light dark:text-muted-dark mt-1">
               we'll arrange them and pull a combined palette
+            </div>
+            <div
+              className="mt-3 flex items-center justify-center gap-2 text-[12px]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="text-muted-light dark:text-muted-dark">or</span>
+              <PasteButton
+                onImage={addPastedImage}
+                className="inline-flex items-center gap-1.5 text-ink-light dark:text-ink-dark underline decoration-dotted underline-offset-2 hover:opacity-80"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" />
+                </svg>
+                paste from clipboard
+              </PasteButton>
+              <span className="text-muted-light dark:text-muted-dark text-[11px]">
+                (Ctrl/Cmd+V also works)
+              </span>
             </div>
           </div>
           <input

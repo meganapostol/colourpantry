@@ -12,6 +12,7 @@ import {
   exportTXT,
 } from "../lib/advancedExports";
 import { fontStack, loadFontPair, FONT_PAIRS } from "../lib/fontPairs";
+import { PasteButton } from "./PasteButton";
 
 function gradientCss(g: NonNullable<ReturnType<typeof useStash>["stash"]["gradient"]>) {
   const stops = [...g.stops]
@@ -591,12 +592,21 @@ export function Sidebar() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => logoFileRef.current?.click()}
-                className="w-full text-[11px] py-2 rounded-md border border-dashed border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
-              >
-                Upload logo · PNG with transparency
-              </button>
+              <div className="grid grid-cols-[1fr_auto] gap-1.5">
+                <button
+                  onClick={() => logoFileRef.current?.click()}
+                  className="text-[11px] py-2 rounded-md border border-dashed border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
+                >
+                  Upload logo
+                </button>
+                <PasteButton
+                  onImage={onLogoFile}
+                  className="text-[11px] px-3 py-2 rounded-md border border-dashed border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark"
+                  title="Paste a logo from your clipboard"
+                >
+                  Paste
+                </PasteButton>
+              </div>
             )}
             <input
               ref={logoFileRef}

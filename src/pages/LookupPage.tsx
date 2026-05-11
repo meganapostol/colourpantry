@@ -6,6 +6,8 @@ import { generatePalette, HARMONY_RULES, type HarmonyRule } from "../lib/harmony
 import { CVD_MODES } from "../state/CVDContext";
 import { CURATED_PALETTES } from "../lib/curated";
 import { hideHexTooltip, showHexTooltip } from "../components/HexTooltip";
+import { usePasteImage } from "../lib/usePasteImage";
+import { PasteButton } from "../components/PasteButton";
 
 type Season = "spring" | "summer" | "autumn" | "winter";
 const SEASONS: Season[] = ["spring", "summer", "autumn", "winter"];
@@ -151,6 +153,8 @@ export function LookupPage() {
     reader.readAsDataURL(file);
   };
 
+  usePasteImage(onFileUpload);
+
   const sampleHexAt = (natX: number, natY: number): string | null => {
     const img = imgRef.current;
     if (!img || !img.complete || img.naturalWidth === 0) return null;
@@ -278,30 +282,55 @@ export function LookupPage() {
           </div>
         </div>
         <div className="rounded-2xl border border-line-light dark:border-line-dark bg-surface-light dark:bg-surface-dark p-4 flex flex-col gap-2.5">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <label className="eyebrow text-muted-light dark:text-muted-dark">Enter a hex</label>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="text-[11px] flex items-center gap-1.5 text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark transition-colors"
-              title="Upload an image to pick a colour from it"
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="text-[11px] flex items-center gap-1.5 text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark transition-colors"
+                title="Upload an image to pick a colour from it"
               >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
-              or pick from an image
-            </button>
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+                pick from image
+              </button>
+              <span className="text-[10px] text-muted-light dark:text-muted-dark" aria-hidden>
+                ·
+              </span>
+              <PasteButton
+                onImage={onFileUpload}
+                className="text-[11px] flex items-center gap-1.5 text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark transition-colors underline decoration-dotted underline-offset-2"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" />
+                </svg>
+                paste from clipboard
+              </PasteButton>
+            </div>
             <input
               ref={fileRef}
               type="file"
