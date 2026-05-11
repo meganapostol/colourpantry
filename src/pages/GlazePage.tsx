@@ -68,10 +68,10 @@ function recolorPixels(
   paletteHex: string[],
   mode: Mode,
   blendPct: number,
+  preserveNeutrals: boolean,
 ) {
   if (paletteHex.length === 0) return;
   const blend = blendPct / 100;
-  const inv = 1 - blend;
 
   // Precompute palette in OKLab for perceptual nearest-neighbor matching
   const paletteLab = paletteHex.map((h) => {
@@ -80,18 +80,37 @@ function recolorPixels(
   });
   const paletteRgb = paletteHex.map(hexToRgb);
 
+  // Soft fade so a near-grey pixel doesn't suddenly jump to a saturated colour
+  // at the threshold edge. Chroma in OKLab; 0 is fully neutral.
+  const FADE_START = 0.03;
+  const FADE_END = 0.08;
+
+  // In flat mode, weight lightness more so a dark pixel prefers a dark stash
+  // colour and a light pixel a light one. This keeps shadow/highlight structure.
+  const flatLightnessWeight = 1.5;
+
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     const [L, A, B] = rgbToOklab(r, g, b);
 
-    // Find nearest palette colour in OKLab (perceptual)
+    let neutralFade = 1;
+    if (preserveNeutrals) {
+      const c = Math.sqrt(A * A + B * B);
+      if (c < FADE_START) continue; // fully preserve whites, greys, blacks
+      if (c < FADE_END) {
+        neutralFade = (c - FADE_START) / (FADE_END - FADE_START);
+      }
+    }
+
+    // Find nearest palette colour in OKLab (perceptual). In flat mode weight
+    // lightness extra so we don't crush a dark pixel onto a light stash colour.
     let minD = Infinity;
     let nearest = 0;
     for (let p = 0; p < paletteLab.length; p++) {
       const [pL, pA, pB] = paletteLab[p];
-      const dL = L - pL;
+      const dL = (L - pL) * (mode === "flat" ? flatLightnessWeight : 1);
       const dA = A - pA;
       const dB = B - pB;
       const d = dL * dL + dA * dA + dB * dB;
@@ -110,9 +129,11 @@ function recolorPixels(
       [nr, ng, nb] = paletteRgb[nearest];
     }
 
-    data[i] = Math.round(r * inv + nr * blend);
-    data[i + 1] = Math.round(g * inv + ng * blend);
-    data[i + 2] = Math.round(b * inv + nb * blend);
+    const eb = blend * neutralFade;
+    const ei = 1 - eb;
+    data[i] = Math.round(r * ei + nr * eb);
+    data[i + 1] = Math.round(g * ei + ng * eb);
+    data[i + 2] = Math.round(b * ei + nb * eb);
     // alpha unchanged
   }
 }
@@ -129,6 +150,7 @@ export function GlazePage() {
   const [processing, setProcessing] = useState(false);
   const [mode, setMode] = useState<Mode>("flat");
   const [blendPct, setBlendPct] = useState(100);
+  const [preserveNeutrals, setPreserveNeutrals] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -200,12 +222,12 @@ export function GlazePage() {
       }
       ctx.drawImage(imgEl, 0, 0, W, H);
       const imageData = ctx.getImageData(0, 0, W, H);
-      recolorPixels(imageData.data, paletteHexes, mode, blendPct);
+      recolorPixels(imageData.data, paletteHexes, mode, blendPct, preserveNeutrals);
       ctx.putImageData(imageData, 0, 0);
       setRecoloredUrl(canvas.toDataURL("image/png"));
       setProcessing(false);
     }, 0);
-  }, [imgEl, paletteHexes, mode, blendPct]);
+  }, [imgEl, paletteHexes, mode, blendPct, preserveNeutrals]);
 
   // Recolor when inputs change
   useEffect(() => {
@@ -448,7 +470,7 @@ export function GlazePage() {
                       ? "bg-ink-light dark:bg-ink-dark text-canvas-light dark:text-canvas-dark"
                       : "border border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark"
                   }`}
-                  title="Each pixel becomes its nearest stash colour. Looks like a posterised mockup."
+                  title="Each pixel becomes its nearest stash colour. Best for UI screenshots."
                 >
                   Flat
                 </button>
@@ -466,8 +488,43 @@ export function GlazePage() {
               </div>
               <div className="text-[10px] text-muted-light dark:text-muted-dark mt-1.5 leading-snug">
                 {mode === "flat"
-                  ? "Flat: each pixel snaps to the nearest stash colour. Best for UI screenshots."
+                  ? "Flat: each saturated pixel snaps to the nearest stash colour. Best for UI screenshots."
                   : "Keep tones: original light/dark stays, only the hue changes. Best for photos."}
+              </div>
+            </div>
+
+            <div>
+              <label className="eyebrow text-muted-light dark:text-muted-dark text-[10px] block mb-1.5">
+                Whites &amp; blacks
+              </label>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setPreserveNeutrals(true)}
+                  className={`flex-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+                    preserveNeutrals
+                      ? "bg-ink-light dark:bg-ink-dark text-canvas-light dark:text-canvas-dark"
+                      : "border border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark"
+                  }`}
+                  title="Leave near-grey pixels alone. Backgrounds and text stay clean."
+                >
+                  Keep
+                </button>
+                <button
+                  onClick={() => setPreserveNeutrals(false)}
+                  className={`flex-1 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+                    !preserveNeutrals
+                      ? "bg-ink-light dark:bg-ink-dark text-canvas-light dark:text-canvas-dark"
+                      : "border border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark"
+                  }`}
+                  title="Recolour everything, including white space and black text."
+                >
+                  Recolour
+                </button>
+              </div>
+              <div className="text-[10px] text-muted-light dark:text-muted-dark mt-1.5 leading-snug">
+                {preserveNeutrals
+                  ? "Keep: greys, whites, and blacks stay as they are. Only the colourful parts get glazed."
+                  : "Recolour: every pixel is mapped, including backgrounds and text."}
               </div>
             </div>
 
