@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import type { Stash } from "./db";
-import { hexToRgbString, nameForHex, readableTextOn } from "./color";
+import { nameForHex, readableTextOn } from "./color";
 
 export type RasterFormat = "png" | "jpg";
 
@@ -47,7 +47,10 @@ async function rasterize(
   });
 }
 
-async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
+async function buildStashPoster(
+  stash: Stash,
+  posterOptions: { customLogoDataUrl?: string } = {},
+): Promise<HTMLElement> {
   const wrap = document.createElement("div");
   wrap.style.position = "fixed";
   wrap.style.left = "-10000px";
@@ -59,6 +62,16 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
   wrap.style.color = "#1A1A1A";
   wrap.style.boxSizing = "border-box";
 
+  const header = document.createElement("div");
+  header.style.display = "flex";
+  header.style.alignItems = "flex-start";
+  header.style.justifyContent = "space-between";
+  header.style.gap = "24px";
+  header.style.marginBottom = "32px";
+
+  const headerText = document.createElement("div");
+  headerText.style.minWidth = "0";
+
   const title = document.createElement("div");
   title.style.fontSize = "32px";
   title.style.fontWeight = "500";
@@ -69,11 +82,30 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
   const meta = document.createElement("div");
   meta.style.fontSize = "14px";
   meta.style.color = "#7A7468";
-  meta.style.marginBottom = "32px";
   meta.textContent = `${stash.swatches.length} swatch${stash.swatches.length === 1 ? "" : "es"} · ${new Date(stash.updatedAt).toLocaleDateString()}`;
 
-  wrap.appendChild(title);
-  wrap.appendChild(meta);
+  headerText.appendChild(title);
+  headerText.appendChild(meta);
+  header.appendChild(headerText);
+
+  if (posterOptions.customLogoDataUrl) {
+    const logo = document.createElement("img");
+    logo.src = posterOptions.customLogoDataUrl;
+    logo.crossOrigin = "anonymous";
+    logo.style.maxWidth = "120px";
+    logo.style.maxHeight = "60px";
+    logo.style.objectFit = "contain";
+    logo.style.display = "block";
+    logo.style.flexShrink = "0";
+    await new Promise<void>((resolve) => {
+      if (logo.complete && logo.naturalHeight !== 0) return resolve();
+      logo.onload = () => resolve();
+      logo.onerror = () => resolve();
+    });
+    header.appendChild(logo);
+  }
+
+  wrap.appendChild(header);
 
   // Polaroid for reference image (when present)
   if (stash.referenceImage) {
@@ -150,21 +182,28 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
   }
 
   const count = stash.swatches.length;
-  const showName = count <= 12;
-  const hexSize = count <= 14 ? 14 : count <= 22 ? 12 : 10;
-  const stripHeight = showName ? 160 : 120;
+  // Multi-row grid keeps cells wide enough that hex codes and names don't
+  // collide with each other. Cap at ~10 columns per row, then wrap.
+  const maxCols = 10;
+  const rows = Math.max(1, Math.ceil(count / maxCols));
+  const cols = Math.max(1, Math.ceil(count / rows));
+  const showName = count <= 30;
+  const hexSize = cols <= 6 ? 16 : cols <= 8 ? 14 : 13;
+  const nameSize = cols <= 6 ? 12 : 11;
+  const cellPad = cols <= 6 ? "14px" : "10px";
+  const rowHeight = showName ? 130 : 90;
 
   const grid = document.createElement("div");
   grid.style.display = "grid";
-  grid.style.gridTemplateColumns = `repeat(${count}, minmax(0, 1fr))`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  grid.style.gridAutoRows = `${rowHeight}px`;
   grid.style.gap = "6px";
-  grid.style.height = `${stripHeight}px`;
 
   for (const s of stash.swatches) {
     const cell = document.createElement("div");
     cell.style.background = s.hex;
     cell.style.borderRadius = "6px";
-    cell.style.padding = count <= 14 ? "12px" : "8px";
+    cell.style.padding = cellPad;
     cell.style.display = "flex";
     cell.style.flexDirection = "column";
     cell.style.justifyContent = "flex-end";
@@ -177,20 +216,17 @@ async function buildStashPoster(stash: Stash): Promise<HTMLElement> {
     hexLabel.style.fontSize = `${hexSize}px`;
     hexLabel.style.fontWeight = "600";
     hexLabel.style.letterSpacing = "-0.01em";
-    hexLabel.style.whiteSpace = "nowrap";
-    hexLabel.style.overflow = "hidden";
-    hexLabel.style.textOverflow = "ellipsis";
+    hexLabel.style.lineHeight = "1.1";
     hexLabel.textContent = s.hex.toUpperCase();
     cell.appendChild(hexLabel);
 
     if (showName) {
       const nameLabel = document.createElement("div");
-      nameLabel.style.fontSize = "11px";
+      nameLabel.style.fontSize = `${nameSize}px`;
       nameLabel.style.opacity = "0.85";
-      nameLabel.style.marginTop = "2px";
-      nameLabel.style.whiteSpace = "nowrap";
-      nameLabel.style.overflow = "hidden";
-      nameLabel.style.textOverflow = "ellipsis";
+      nameLabel.style.marginTop = "3px";
+      nameLabel.style.lineHeight = "1.2";
+      nameLabel.style.wordBreak = "break-word";
       nameLabel.textContent = s.name || nameForHex(s.hex);
       cell.appendChild(nameLabel);
     }
@@ -228,73 +264,27 @@ export interface PDFOptions {
   customLogoDataUrl?: string;
 }
 
-export function exportPDF(stash: Stash, options: PDFOptions = {}) {
+export async function exportPDF(stash: Stash, options: PDFOptions = {}) {
   if (stash.swatches.length === 0) return;
-  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const W = pdf.internal.pageSize.getWidth();
-  const H = pdf.internal.pageSize.getHeight();
-
-  if (options.customLogoDataUrl) {
-    try {
-      const logoW = 28;
-      const logoH = 28;
-      pdf.addImage(options.customLogoDataUrl, "PNG", W / 2 - logoW / 2, H / 2 - 60, logoW, logoH);
-    } catch {
-      /* noop — bad image */
-    }
-  }
-
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(28);
-  pdf.text(stash.name || "Untitled Stash", W / 2, H / 2 - 20, { align: "center" });
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(12);
-  pdf.text(new Date(stash.updatedAt).toLocaleDateString(), W / 2, H / 2 - 8, { align: "center" });
-  pdf.setFontSize(10);
-  pdf.setTextColor(120);
-  pdf.text(`${stash.swatches.length} swatches`, W / 2, H / 2, { align: "center" });
-  pdf.setTextColor(160);
-  pdf.text(
-    options.customLogoDataUrl ? "Curated with Colour Pantry" : "Made with Colour Pantry",
-    W / 2,
-    H - 12,
-    { align: "center" },
-  );
-
-  const margin = 18;
-  const cellW = (W - margin * 2 - 8) / 2;
-  const cellH = (H - margin * 2 - 8) / 2;
-
-  const positions: Array<[number, number]> = [
-    [margin, margin],
-    [margin + cellW + 8, margin],
-    [margin, margin + cellH + 8],
-    [margin + cellW + 8, margin + cellH + 8],
-  ];
-
-  stash.swatches.forEach((s, i) => {
-    const slot = i % 4;
-    if (slot === 0) pdf.addPage();
-    const [x, y] = positions[slot];
-    const rgb = s.hex.replace("#", "");
-    const r = parseInt(rgb.slice(0, 2), 16);
-    const g = parseInt(rgb.slice(2, 4), 16);
-    const b = parseInt(rgb.slice(4, 6), 16);
-    pdf.setFillColor(r, g, b);
-    pdf.roundedRect(x, y, cellW, cellH * 0.7, 2, 2, "F");
-
-    pdf.setTextColor(40);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    pdf.text(s.hex.toUpperCase(), x, y + cellH * 0.78);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.setTextColor(110);
-    pdf.text(s.name || nameForHex(s.hex), x, y + cellH * 0.85);
-    pdf.text(`RGB ${hexToRgbString(s.hex)}`, x, y + cellH * 0.92);
+  const node = await buildStashPoster(stash, {
+    customLogoDataUrl: options.customLogoDataUrl,
   });
-
-  pdf.save(`${safeFilename(stash.name)}.pdf`);
+  document.body.appendChild(node);
+  try {
+    const canvas = await html2canvas(node, {
+      backgroundColor: "#FAF7F2",
+      scale: 2,
+      useCORS: true,
+    });
+    const w = canvas.width / 2;
+    const h = canvas.height / 2;
+    const orientation = w > h ? "landscape" : "portrait";
+    const pdf = new jsPDF({ unit: "px", format: [w, h], orientation });
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, w, h);
+    pdf.save(`${safeFilename(stash.name)}.pdf`);
+  } finally {
+    document.body.removeChild(node);
+  }
 }
 
 export function exportSVG(stash: Stash) {

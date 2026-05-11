@@ -126,8 +126,21 @@ export function LookupPage() {
   const [harmony, setHarmony] = useState<HarmonyRule>("monochromatic");
   const [seasonTab, setSeasonTab] = useState<Season>("autumn");
   const [pickerImage, setPickerImage] = useState<string | null>(null);
+  const [magnifier, setMagnifier] = useState<{
+    x: number;
+    y: number;
+    bgX: number;
+    bgY: number;
+    bgW: number;
+    bgH: number;
+    previewHex: string;
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const sampleCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const MAG_SIZE = 130;
+  const MAG_ZOOM = 8;
 
   const onFileUpload = (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -138,31 +151,78 @@ export function LookupPage() {
     reader.readAsDataURL(file);
   };
 
-  const onPickFromImage = (e: React.MouseEvent<HTMLImageElement>) => {
+  const sampleHexAt = (natX: number, natY: number): string | null => {
     const img = imgRef.current;
-    if (!img || !img.complete || img.naturalWidth === 0) return;
-    const rect = img.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * img.naturalWidth;
-    const y = ((e.clientY - rect.top) / rect.height) * img.naturalHeight;
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    if (!img || !img.complete || img.naturalWidth === 0) return null;
+    let canvas = sampleCanvasRef.current;
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(img, 0, 0);
+      sampleCanvasRef.current = canvas;
+    }
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(img, 0, 0);
+    if (!ctx) return null;
     try {
-      const data = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
-      const picked =
+      const data = ctx.getImageData(Math.round(natX), Math.round(natY), 1, 1).data;
+      return (
         "#" +
         [data[0], data[1], data[2]]
           .map((c) => c.toString(16).padStart(2, "0"))
           .join("")
-          .toUpperCase();
-      setInput(picked);
+          .toUpperCase()
+      );
     } catch {
-      // sandboxed image read fail — silently ignore
+      return null;
     }
   };
+
+  const onPickFromImage = (e: React.MouseEvent<HTMLImageElement>) => {
+    const img = imgRef.current;
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+    const rect = img.getBoundingClientRect();
+    const natX = ((e.clientX - rect.left) / rect.width) * img.naturalWidth;
+    const natY = ((e.clientY - rect.top) / rect.height) * img.naturalHeight;
+    const picked = sampleHexAt(natX, natY);
+    if (picked) setInput(picked);
+  };
+
+  const onImageMouseMove = (e: React.MouseEvent<HTMLImageElement>) => {
+    const img = imgRef.current;
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+    const rect = img.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+      setMagnifier(null);
+      return;
+    }
+    const bgW = rect.width * MAG_ZOOM;
+    const bgH = rect.height * MAG_ZOOM;
+    const natX = (x / rect.width) * img.naturalWidth;
+    const natY = (y / rect.height) * img.naturalHeight;
+    const previewHex = sampleHexAt(natX, natY) ?? "#000000";
+    setMagnifier({
+      x,
+      y,
+      bgX: -(x * MAG_ZOOM - MAG_SIZE / 2),
+      bgY: -(y * MAG_ZOOM - MAG_SIZE / 2),
+      bgW,
+      bgH,
+      previewHex,
+    });
+  };
+
+  const onImageMouseLeave = () => setMagnifier(null);
+
+  useEffect(() => {
+    // Clear cached canvas so the next sample re-draws from the new source image.
+    sampleCanvasRef.current = null;
+    setMagnifier(null);
+  }, [pickerImage]);
 
   useEffect(() => {
     const norm = normalizeHex(input);
@@ -271,18 +331,50 @@ export function LookupPage() {
                 alt="Click anywhere to pick a colour"
                 className="w-full max-h-48 object-contain cursor-crosshair block"
                 onClick={onPickFromImage}
+                onMouseMove={onImageMouseMove}
+                onMouseLeave={onImageMouseLeave}
                 draggable={false}
               />
+              {magnifier && (
+                <div
+                  className="absolute pointer-events-none rounded-full border-2 border-white shadow-lift z-10"
+                  style={{
+                    width: MAG_SIZE,
+                    height: MAG_SIZE,
+                    left: magnifier.x - MAG_SIZE / 2,
+                    top: magnifier.y - MAG_SIZE / 2,
+                    backgroundImage: `url(${pickerImage})`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: `${magnifier.bgW}px ${magnifier.bgH}px`,
+                    backgroundPosition: `${magnifier.bgX}px ${magnifier.bgY}px`,
+                    imageRendering: "pixelated",
+                  }}
+                >
+                  <div
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-2 border-white"
+                    style={{ width: 10, height: 10, boxShadow: "0 0 0 1px rgba(0,0,0,0.6)" }}
+                  />
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 -bottom-6 px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap"
+                    style={{
+                      background: magnifier.previewHex,
+                      color: readableTextOn(magnifier.previewHex),
+                    }}
+                  >
+                    {magnifier.previewHex}
+                  </div>
+                </div>
+              )}
               <button
                 onClick={() => setPickerImage(null)}
-                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-ink-light/80 dark:bg-ink-dark/80 text-canvas-light dark:text-canvas-dark text-sm flex items-center justify-center hover:opacity-100"
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-ink-light/80 dark:bg-ink-dark/80 text-canvas-light dark:text-canvas-dark text-sm flex items-center justify-center hover:opacity-100 z-20"
                 aria-label="Remove image"
                 title="Remove image"
               >
                 ×
               </button>
               <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-full bg-ink-light/80 dark:bg-ink-dark/80 text-canvas-light dark:text-canvas-dark text-[10px] tracking-tight">
-                click anywhere to pick
+                hover to zoom · click to pick
               </div>
             </div>
           )}
