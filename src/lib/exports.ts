@@ -198,8 +198,12 @@ async function buildStashPoster(
   const showName = count <= 30;
   const hexSize = cols <= 6 ? 16 : cols <= 8 ? 14 : 13;
   const nameSize = cols <= 6 ? 12 : 11;
-  const cellPad = cols <= 6 ? "14px" : "10px";
-  const rowHeight = showName ? 130 : 90;
+  const padX = cols <= 6 ? 14 : 10;
+  // Labels are placed at the bottom of each cell; html2canvas tends to clip
+  // descenders ('y', 'g') when bottom padding is tight, so leave extra room.
+  const padTop = padX;
+  const padBottom = 18;
+  const rowHeight = showName ? 150 : 100;
 
   const grid = document.createElement("div");
   grid.style.display = "grid";
@@ -211,7 +215,8 @@ async function buildStashPoster(
     const cell = document.createElement("div");
     cell.style.background = s.hex;
     cell.style.borderRadius = "6px";
-    cell.style.padding = cellPad;
+    cell.style.padding = `${padTop}px ${padX}px ${padBottom}px ${padX}px`;
+    cell.style.boxSizing = "border-box";
     cell.style.display = "flex";
     cell.style.flexDirection = "column";
     cell.style.justifyContent = "flex-end";
@@ -224,7 +229,8 @@ async function buildStashPoster(
     hexLabel.style.fontSize = `${hexSize}px`;
     hexLabel.style.fontWeight = "600";
     hexLabel.style.letterSpacing = "-0.01em";
-    hexLabel.style.lineHeight = "1.1";
+    hexLabel.style.lineHeight = "1.4";
+    hexLabel.style.paddingBottom = "2px";
     hexLabel.textContent = s.hex.toUpperCase();
     cell.appendChild(hexLabel);
 
@@ -232,8 +238,9 @@ async function buildStashPoster(
       const nameLabel = document.createElement("div");
       nameLabel.style.fontSize = `${nameSize}px`;
       nameLabel.style.opacity = "0.85";
-      nameLabel.style.marginTop = "3px";
-      nameLabel.style.lineHeight = "1.2";
+      nameLabel.style.marginTop = "2px";
+      nameLabel.style.lineHeight = "1.4";
+      nameLabel.style.paddingBottom = "2px";
       nameLabel.style.wordBreak = "break-word";
       nameLabel.textContent = s.name || nameForHex(s.hex);
       cell.appendChild(nameLabel);
