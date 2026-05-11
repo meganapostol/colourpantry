@@ -92,16 +92,24 @@ async function buildStashPoster(
     const logo = document.createElement("img");
     logo.src = posterOptions.customLogoDataUrl;
     logo.crossOrigin = "anonymous";
-    logo.style.maxWidth = "120px";
-    logo.style.maxHeight = "60px";
-    logo.style.objectFit = "contain";
-    logo.style.display = "block";
-    logo.style.flexShrink = "0";
     await new Promise<void>((resolve) => {
       if (logo.complete && logo.naturalHeight !== 0) return resolve();
       logo.onload = () => resolve();
       logo.onerror = () => resolve();
     });
+    // Compute dimensions explicitly from the natural aspect ratio so html2canvas
+    // doesn't squish the logo. Fit within a 180x80 box without upscaling.
+    const maxW = 180;
+    const maxH = 80;
+    const natW = logo.naturalWidth || 1;
+    const natH = logo.naturalHeight || 1;
+    const scale = Math.min(maxW / natW, maxH / natH, 1);
+    const finalW = Math.max(1, Math.round(natW * scale));
+    const finalH = Math.max(1, Math.round(natH * scale));
+    logo.style.width = `${finalW}px`;
+    logo.style.height = `${finalH}px`;
+    logo.style.display = "block";
+    logo.style.flexShrink = "0";
     header.appendChild(logo);
   }
 

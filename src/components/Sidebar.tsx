@@ -47,9 +47,9 @@ export function Sidebar() {
   const logoFileRef = useRef<HTMLInputElement>(null);
   const switcherRef = useRef<HTMLDivElement>(null);
 
-  // Load all stashes when the switcher opens (and refresh whenever the active stash changes)
+  // Keep the full stash list around so the prev/next toggles can cycle through it
+  // without waiting for the switcher dropdown to open.
   useEffect(() => {
-    if (!switcherOpen) return;
     let cancelled = false;
     getAllStashes().then((list) => {
       if (!cancelled) setAllStashes(list);
@@ -57,7 +57,7 @@ export function Sidebar() {
     return () => {
       cancelled = true;
     };
-  }, [switcherOpen, stash.updatedAt]);
+  }, [stash.id, stash.updatedAt]);
 
   useEffect(() => {
     if (!switcherOpen) return;
@@ -123,16 +123,54 @@ export function Sidebar() {
 
   if (fontPair) loadFontPair(fontPair);
 
+  const currentIndex = allStashes.findIndex((s) => s.id === stash.id);
+  const canCycle = allStashes.length > 1 && currentIndex !== -1;
+  const cycleTo = (delta: number) => {
+    if (!canCycle) return;
+    const next =
+      allStashes[(currentIndex + delta + allStashes.length) % allStashes.length];
+    if (next.id !== stash.id) loadStash(next.id);
+  };
+
   return (
     <aside className="w-80 shrink-0 bg-surface-light/70 dark:bg-surface-dark/60 backdrop-blur-md border-l border-line-light dark:border-line-dark flex flex-col h-full">
       <div className="p-5 border-b border-line-light dark:border-line-dark">
-        <div className="flex items-center justify-between mb-3">
-          <span className="eyebrow text-muted-light dark:text-muted-dark">
-            Current Stash
-          </span>
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="eyebrow text-muted-light dark:text-muted-dark">
+              Current Stash
+            </span>
+            {canCycle && (
+              <div className="flex items-center gap-0.5 ml-1">
+                <button
+                  onClick={() => cycleTo(-1)}
+                  className="w-5 h-5 rounded-md text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark flex items-center justify-center"
+                  aria-label="Previous stash"
+                  title="Previous stash"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <span className="text-[10px] font-mono text-muted-light dark:text-muted-dark tabular-nums px-0.5">
+                  {currentIndex + 1}/{allStashes.length}
+                </span>
+                <button
+                  onClick={() => cycleTo(1)}
+                  className="w-5 h-5 rounded-md text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark flex items-center justify-center"
+                  aria-label="Next stash"
+                  title="Next stash"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setCollapsed(true)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark transition-colors"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark hover:bg-canvas-light dark:hover:bg-canvas-dark transition-colors shrink-0"
             aria-label="Hide sidebar"
             title="Hide sidebar"
           >

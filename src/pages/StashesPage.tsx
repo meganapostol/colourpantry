@@ -11,10 +11,12 @@ import {
 import { useStash } from "../state/StashContext";
 import { exportJPG, exportPDF, exportPNG, exportSVG } from "../lib/exports";
 
+type FolderFilter = FolderId | "all";
+
 export function StashesPage() {
   const { stash: activeStash, loadStash, showToast } = useStash();
   const [stashes, setStashes] = useState<Stash[]>([]);
-  const [folder, setFolder] = useState<FolderId>("personal");
+  const [folder, setFolder] = useState<FolderFilter>("all");
   const [refreshKey, setRefreshKey] = useState(0);
   const [openStash, setOpenStash] = useState<Stash | null>(null);
 
@@ -29,12 +31,13 @@ export function StashesPage() {
   }, [refreshKey, activeStash.updatedAt]);
 
   const inFolder = useMemo(
-    () => stashes.filter((s) => s.folder === folder),
+    () => (folder === "all" ? stashes : stashes.filter((s) => s.folder === folder)),
     [stashes, folder],
   );
 
   const createNew = async () => {
-    const s = newStash(folder);
+    const targetFolder: FolderId = folder === "all" ? "personal" : folder;
+    const s = newStash(targetFolder);
     s.name = "Untitled Stash";
     await saveStash(s);
     setRefreshKey((k) => k + 1);
@@ -76,6 +79,17 @@ export function StashesPage() {
         </div>
 
         <div className="flex gap-1 border-b border-line-light dark:border-line-dark mb-6 overflow-x-auto">
+          <button
+            onClick={() => setFolder("all")}
+            className={`px-4 py-2.5 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap ${
+              folder === "all"
+                ? "border-ink-light dark:border-ink-dark text-ink-light dark:text-ink-dark"
+                : "border-transparent text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark"
+            }`}
+          >
+            All
+            <span className="ml-1.5 text-[11px] opacity-60 font-mono">{stashes.length}</span>
+          </button>
           {FOLDERS.map((f) => {
             const count = stashes.filter((s) => s.folder === f.id).length;
             const active = folder === f.id;
@@ -98,7 +112,9 @@ export function StashesPage() {
 
         {inFolder.length === 0 ? (
           <div className="text-center text-sm text-muted-light dark:text-muted-dark py-20 rounded-2xl border border-dashed border-line-light dark:border-line-dark">
-            No stashes in this folder yet. Click swatches anywhere in the app to start one.
+            {folder === "all"
+              ? "No stashes yet. Click swatches anywhere in the app to start one."
+              : "No stashes in this folder yet. Click swatches anywhere in the app to start one."}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -109,6 +125,7 @@ export function StashesPage() {
                 onOpen={() => setOpenStash(s)}
                 onLoad={() => onLoad(s.id)}
                 onDelete={() => onDelete(s.id)}
+                showFolder={folder === "all"}
               />
             ))}
           </div>
@@ -132,12 +149,15 @@ function StashCard({
   onOpen,
   onLoad,
   onDelete,
+  showFolder = false,
 }: {
   stash: Stash;
   onOpen: () => void;
   onLoad: () => void;
   onDelete: () => void;
+  showFolder?: boolean;
 }) {
+  const folderLabel = FOLDERS.find((f) => f.id === stash.folder)?.label ?? stash.folder;
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -189,6 +209,12 @@ function StashCard({
             {stash.name}
           </div>
           <div className="text-[11px] text-muted-light dark:text-muted-dark mt-0.5">
+            {showFolder && (
+              <>
+                <span className="capitalize">{folderLabel}</span>
+                <span aria-hidden> · </span>
+              </>
+            )}
             {stash.swatches.length} swatch{stash.swatches.length === 1 ? "" : "es"} ·{" "}
             {new Date(stash.updatedAt).toLocaleDateString()}
           </div>
