@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const TIP_JAR_URL = "https://buy.stripe.com/REPLACE_WITH_STRIPE_PAYMENT_LINK";
+const TIP_JAR_URL = "https://buy.stripe.com/3cIeVcanDfuX0Mb22V9sk01";
 
 export function Footer() {
   return (
