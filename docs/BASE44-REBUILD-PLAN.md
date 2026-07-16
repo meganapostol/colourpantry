@@ -28,7 +28,14 @@ And one strategic input: a **competitive brief** on other colour platforms (Cool
 5. **Design tokens:** all colours/fonts via `src/index.css` tokens + `tailwind.config.js` mappings. Literal Tailwind class strings only. Ironic for a colour app, but user-generated colours are runtime values: render those with inline `style={{ background: hex }}` on swatch elements only (runtime data is the sanctioned exception), never dynamic Tailwind class names.
 6. **Build flow:** app created in Base44 → linked GitHub repo (2-way sync) → cloned locally → work in Claude Code → push to `main` deploys. Pull before every edit session. Preview ≠ published; schema/RLS changes take effect on publish. Schema changes go in BOTH the MCP (`update_entity_schema`) and `base44/entities/*.jsonc`.
 7. **Auth is platform-owned.** Pre-built Login/Register/ForgotPassword/ResetPassword pages already exist; never recreate them. Register does not log in: register → OTP → `verifyOtp` → `setToken` → hard redirect via `window.location.href`.
-8. **Copy rule (Megan's standing preference):** no em dashes in any blog, marketing, or in-app copy. Use commas, parens, colons, or split sentences.
+8. **Copy rules (house style, strict — from `voice-and-copy/copy-rules`).** Apply to every word that ships: UI, marketing, blog, errors, commits, code comments.
+   - No emojis. Anywhere. Including commit messages and comments.
+   - No em dashes. Use commas, parens, colons, or split the sentence.
+   - No AI-hedge phrases ("I hope this helps", "feel free to", "please let me know if", "thanks for reaching out").
+   - No fabricated stats. If a number cannot be verified, leave it out. This binds the competitive brief and the landing page hardest.
+   - Solo first-person voice. The copy reads as if Megan does everything herself. Never name or hint at a technical partner or dev.
+8b. **Design taste filter (from `junk-drawer/design-taste`), run before any visual call.** Warm Notion/Are.na: warm tones over cold, typography-driven over effects-driven, functional beauty (it looks good because it does its job). Hard nos: Playfair Display specifically; vibe-code colour (trendy dark mode with neon accents, purple/pink gradients, glassmorphism); decoration for its own sake. If a mockup drifts toward neon-on-dark or gradient soup, it is wrong before anyone looks at it.
+8c. **Show, do not tell.** Megan has said plainly she cannot visualise prose. Any design or UI direction gets built as a real mockup (the artifact is the deliverable, not the paragraph about it). Reference styles by a built example or screenshot, never by brand name. The C3 loader mockup is the pattern to follow for the landing page too.
 9. **Ship-to-live default:** commit and push to `main` without asking. But for THIS project, publish-to-users is a separate Base44 action; confirm Base44 app ownership before promising a publish.
 10. **Pre-launch security audit is mandatory** (`base44-security-audit` skill) before publishing. Public REST + loose RLS leaks PII.
 11. `asServiceRole` does NOT reliably bypass RLS. Prefer client-side operations under the acting user, or design RLS so the operation is permitted.
@@ -72,9 +79,9 @@ Current stack: Vite, React 19, TypeScript, Tailwind 3, react-router 7, IndexedDB
 
 | Step | Skill | Purpose | Output |
 |---|---|---|---|
-| S1 | `/baseics` | Build-start ritual: platform model, RLS traps, setup checklist. Load at the very start of the Base44 session. | Session primed; setup ritual checklist |
-| S2 | `/build-bible` | Pull Megan's saved prompts, design taste, references from `C:\Users\megan\Downloads\build-bible` | Design direction for landing page, loading screen, app shell |
-| S3 | `/competitive-brief` (marketing plugin) | Competitor positioning scan. **Skip Coolors (already covered).** Cover: Adobe Color, Realtime Colors, Khroma, Huemint, Colormind, Happy Hues, ColorHunt, Paletton; plus extension-space competitors ColorZilla and ColorPick Eyedropper (directly informs Workstream E). | Positioning gaps, messaging angles, feature threats/opportunities. Feeds landing page copy (C1) and feature prioritization |
+| S1 | `/baseics` | Build-start ritual: platform model, RLS traps, setup checklist. Load at the very start of the Base44 session. | **RUN 2026-07-17.** Findings folded into sections 1 and 5. Key: RLS is default-suspect, `asServiceRole` does not reliably bypass it, confirm app ownership before promising a publish, audit before launch. |
+| S2 | `/build-bible` | Pull Megan's saved prompts, design taste, references from `C:\Users\megan\Downloads\build-bible` | **RUN 2026-07-17.** Pages pulled: `design-taste`, `whimsical-tech`, `gotchas`, `base44-fingerprint-pass`, `anti-ai-craft-tells`, `base44-rls-first`, `one-cta-marketing-site`, `copy-rules`, `how-you-work`. Folded into sections 1.8, 1.8b, 1.8c, A6, A6b, C1, C2, C3, D6. Materially corrected the C3 spec (canvas not SVG; exponent > 1 not < 1). |
+| S3 | `/competitive-brief` (marketing plugin) | Competitor positioning scan. **Skip Coolors (already covered).** Cover: Adobe Color, Realtime Colors, Khroma, Huemint, Colormind, Happy Hues, ColorHunt, Paletton; plus extension-space competitors ColorZilla and ColorPick Eyedropper (directly informs Workstream E). Plus the load-bearing question: does anyone already do Glaze? | Positioning gaps, messaging angles, feature threats/opportunities. Feeds landing page copy (C1) and feature prioritization. Every factual claim adversarially verified because copy rules forbid fabricated stats. → `docs/COMPETITIVE-BRIEF.md` |
 | S4 | `/base44-onboarding-ux` | When building Workstream D (onboarding). | First-run wizard patterns, profile-completion approach |
 | S5 | `/component-tap` | During UI build, for hero/nav/pricing/section blocks. | Component sources compatible with the whitelist (shadcn-based only) |
 | S6 | `/base44-security-audit` | Before publish (Workstream F). | RLS/PII audit report |
@@ -119,7 +126,13 @@ Schema changes always: MCP `update_entity_schema` + repo `base44/entities/*.json
 - **A3.** Link the app to a NEW GitHub repo (2-way sync). Do not reuse the current `colourpantry` repo (it stays live on Vercel serving v1 until cutover; decision D1 covers repo naming).
 - **A4.** Clone locally; paste `~/.claude/base44/PROJECT-CLAUDE-SNIPPET.md` at the top of the new repo's `CLAUDE.md` (create it). Add a short project header noting v1 lives at the old repo.
 - **A5.** Run `/baseics` setup ritual. Verify preview URL loads through Claude in Chrome.
-- **A6.** Design tokens: port ColourPantry's brand palette and type scale from v1 `src/index.css` into the new `src/index.css` (`:root` + `.dark`) and `tailwind.config.js`, folded together with Build Bible direction (S2). This gates all UI work.
+- **A6.** Design tokens: port ColourPantry's brand palette and type scale from v1 `src/index.css` + `tailwind.config.js` into the new ones (`:root` + `.dark`), folded together with Build Bible direction (S2). This gates all UI work. **Register every brand var in `tailwind.config.js` BEFORE any visual work** — the fingerprint-pass lesson is explicit that skipping this is how The Advocate's Table ended up with ~130 inline `style={{ backgroundColor: 'var(--x)' }}`, turning every later pass into a 30-file hunt instead of a one-line change. The live v1 values to carry over: canvas `#FAF7F2` / `#0E0E0E`, surface `#FFFFFF` / `#161616`, ink `#1A1A1A` / `#FAF7F2`, line `#E8E2D5` / `#262626`, muted `#7A7468` / `#9A9A9A`, gold `#D4A574`. Gold is punctuation only (it marks arrival and achievement), never wallpaper.
+- **A6b.** **Base44 fingerprint pass** (run at scaffold time, not as a later cleanup). From `lessons/base44-fingerprint-pass`:
+  - Swap the stock AI-elegant type trio (Cormorant Garamond or Playfair + Inter + Caveat) off the build immediately. Playfair is a hard no. See decision D6 for what replaces it.
+  - Clear scaffold residue: the Base44 favicon (port v1's `public/favicon.svg`), `name: "untitled"` in config.jsonc, and the untouched shadcn `.dark` block with purple/pink chart tokens sitting in it. That block is vibe-code colour and it ships by default.
+  - Real SVG `feTurbulence` grain, not a CSS dot grid. (v1's `.canvas-grain` is currently two radial-gradients; the mockup has a working feTurbulence data-URI to lift.)
+  - One house motion curve `cubic-bezier(0.16, 1, 0.3, 1)`, 0.9-1.4s. No infinite bouncing anything.
+  - One card everywhere is a tell: give each content type its native form. Reserve the card for where the shape means something.
 - **A7.** App shell: layout route with `<Outlet>`, header, sidebar, footer (with tip jar link per D5), theme toggle, toast system (platform `<Toaster />`), route skeleton in `App.jsx` (surgical edits, preserve scaffold). Public vs. protected route split per D2.
 - **A8.** Entity schemas from section 5 created in both places. Publish once so RLS is live in preview testing.
 
@@ -140,15 +153,19 @@ Order within B: B1 first (everything imports it), then B2–B10 in any order, ro
 
 ### Workstream C — Landing page + loading screen (after A6; copy blocked on S3)
 
-- **C1.** Landing page copy: positioning from the competitive brief (S3) + Build Bible voice. No em dashes. Sections: hero, feature showcase (Glaze is the differentiator, lead with it), extension teaser, social proof placeholder, CTA to register. Draft with the `content-writer` agent if orchestrating multi-agent.
-- **C2.** Landing page build: public `/` route (app home moves per D2), shadcn + framer-motion, blocks via `/component-tap`. Responsive, dark-mode aware, real copy from C1.
-- **C3.** **Crayon-melt loading screen.** Spec:
-  - A row of 6-8 crayons in brand colours; each melts downward (wax drip = animated SVG path / framer-motion scaleY + drip blobs).
-  - Melt progress maps to REAL load progress, and the melt rate accelerates as progress climbs (ease-in mapping: `meltAmount = progress^p` with p < 1 early feel, or spring with stiffness scaled by progress). Faster as it loads is the requirement.
-  - Progress signal: count of settled boot promises (auth check `isAuthenticated()`, initial entity fetches, font load via `document.fonts.ready`, image preloads). Expose as a small context: `registerBootTask(promise)` → fraction settled.
-  - Implement as `<BootLoader>` gate in the layout; also reusable as an inline loader (mini crayon) for slow integration calls (platform design rule: show loading indicators during integration calls).
-  - framer-motion only (whitelisted). No lottie, no gsap, no external animation libs.
-  - Acceptance: throttled network in devtools shows melt tracking real progress and visibly accelerating; completes with a satisfying "fully melted → wipe" transition; respects `prefers-reduced-motion` (crossfade fallback).
+- **C1.** Landing page copy: positioning from the competitive brief (S3) + Build Bible voice. Sections: hero, feature showcase (lead with Glaze if S3 confirms it is genuinely differentiated, and only then), extension teaser, CTA to register. Copy rules in section 1.8 are binding: no em dashes, no emoji, no hedge, solo first-person voice, and **no fabricated stats** (no invented user counts, no "trusted by N designers"). Drop the social-proof placeholder unless there is something real to put in it. Draft with the `content-writer` agent if orchestrating multi-agent.
+- **C2.** Landing page build: public `/` route (app home moves per D2), shadcn + framer-motion, blocks via `/component-tap`. Responsive, dark-mode aware, real copy from C1. **Marketing-site conventions from `prompts/one-cta-marketing-site`:** brand tokens in one theme block, token classes never hardcoded hex, one CTA per section, no carousels. Keep fallback content in the repo so the page renders complete before any entity has rows. Build it as a mockup first and show it (section 1.8c).
+- **C3.** **Crayon-melt loading screen.** Built and verified as an interactive mockup on 2026-07-17: https://claude.ai/code/artifact/12fb6446-6bf1-448a-b7b1-13218fbfc97e — source of truth for the behaviour. Port that, do not re-derive it. Spec:
+  - **Reference:** melted-crayon-art. Seven crayons fixed at the top, tips down, wax running down in streaks, resolving into a seven-segment ColourPantry palette strip at the bottom. The loader becomes the product's core object (a palette) rather than sitting next to it.
+  - **Canvas, not SVG.** One canvas redrawn per frame. This is the `gotchas` rule (prefer canvas effects over SVG-manipulation; canvas does not fight React's reconciler) and it matters doubly here: a loader unmounts the instant loading finishes, which is exactly the SVGFollower/Chromatica crash shape (pending timer fires after unmount, touches a cleared node, `insertBefore` throws). No manual DOM, no timers holding element refs.
+  - **Melt curve: `melt = progress ^ 2.2`. The exponent must be GREATER than 1.** An earlier draft of this plan said `p < 1`; that is wrong and would decelerate. `d(melt)/d(progress) = p · progress^(p-1)`, which only increases when p > 1. Verified in the mockup by pixel sampling: at 35% progress the wax is 9.5% melted, at 70% it is 45.6%, at 100% it is 100%. The second half of the load does about 90% of the melting, which is the "faster as it loads" brief. The mockup ships an exponent slider so Megan can pick the final number by feel.
+  - **Progress signal:** `registerBootTask(promise)` → fraction settled. Real boot promises (session check `isAuthenticated()`, stashes fetch, curated library, `document.fonts.ready`, colour engine). Never a timer. `shown` lerps toward `target` frame-rate-independently (`k = 1 - 0.0045^(dt/1000)`, dt clamped to 64ms) so step arrivals ease instead of snapping, and a stalled entity fetch visibly stalls the wax.
+  - **Paint once synchronously on init, before the first `requestAnimationFrame`.** Found during mockup verification: rAF does not fire in a hidden or backgrounded tab, so a loader that only paints inside rAF shows an empty canvas. Also resync the clock on `visibilitychange` so a long hidden stretch does not jump the melt.
+  - Implement as a `<BootLoader>` gate in the layout; reuse a mini crayon as the inline loader for slow integration calls (platform rule: show loading indicators during integration calls).
+  - framer-motion only for the DOM-side wipe (whitelisted); the melt itself is canvas. No lottie, no gsap, no external animation libs.
+  - **Motion:** one house curve `cubic-bezier(0.16, 1, 0.3, 1)`, 0.9-1.4s, per the fingerprint pass. Hold a beat of stillness at 100% before the wipe (pacing is the cheapest strong signal of human craft). Kill any `ease: 'easeOut'` + `delay: i * 0.08` default stagger.
+  - **Reduced motion is a real fallback, not a disabled animation:** no drips, no per-frame melt, strip fills and the count runs. Respect `prefers-reduced-motion`.
+  - Acceptance: throttled network shows the melt tracking real progress and visibly accelerating; the strip completes into a clean palette; no blank first paint; reduced-motion path still communicates position.
 
 ### Workstream D — Onboarding workflow (after A7 + B3; load S4 first)
 
@@ -212,8 +229,9 @@ If orchestrating multi-agent: B2–B10 are independent page builds sharing only 
 - **D3. Feature kills.** Anything from the v1 route list NOT worth rebuilding (candidates to question: Collage, Skin, Lookup as a separate page vs. merged into search). Plan assumes everything migrates.
 - **D4. Blog storage.** In-repo markdown (simple, versioned, no entity) vs. `BlogPost` entity (editable from dashboard). Plan assumes in-repo markdown.
 - **D5. Tip jar.** Keep the existing Stripe payment link (zero work) vs. Base44 payments provider. Plan assumes: keep the Stripe link.
+- **D6. Type.** Genuine tension, surfaced rather than decided. v1 ships **Jost** (set in `tailwind.config.js` as both sans and display). The design-taste page names **IBM Plex Serif / IBM Plex Sans** as the fingerprint, and the fingerprint-pass lesson says type is the loudest tell and to swap the stack to Plex. But Jost is not a Base44 default tell (the tells are Cormorant/Playfair + Inter + Caveat), so v1's type is a deliberate choice, not template residue. Options: (a) keep Jost, v2 stays visually continuous with v1; (b) move to IBM Plex Serif headings over Plex Sans body, matching the fingerprint. Either way it is a 2-file change (index.html + index.css) because everything routes through `--font-heading` / `--font-body`. **Plan assumes (a) keep Jost** until Megan says otherwise. Not a blocker for anything except A6b.
 
-Answer these before Workstream A; none block the S1–S3 skill runs.
+Answer these before Workstream A; none block the S1-S3 skill runs.
 
 ---
 
