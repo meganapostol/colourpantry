@@ -1,3 +1,5 @@
+> **FROZEN COPY.** The live version of this document moved to the colourshark repo (docs/) on 2026-07-17. Edit it there; this copy stays as v1-era history.
+
 # ColourPantry v2: Base44 Rebuild Orchestration Plan
 
 **Status:** Plan only. No production code has been written.

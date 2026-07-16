@@ -1,3 +1,5 @@
+> **FROZEN COPY.** The live version of this document moved to the colourshark repo (docs/) on 2026-07-17. Edit it there; this copy stays as v1-era history.
+
 # ColourPantry: competitive brief
 
 **Produced 2026-07-17** for the v2 Base44 rebuild. Coolors excluded from research on request (already covered in prior work), which is a real limitation and is flagged where it bites.
