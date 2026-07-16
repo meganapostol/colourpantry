@@ -1,10 +1,15 @@
-# ColourPantry v2 — Base44 Rebuild Orchestration Plan
+# ColourPantry v2: Base44 Rebuild Orchestration Plan
 
 **Status:** Plan only. No production code has been written.
 **Audience:** The implementation model executing this rebuild. Read this whole file before writing anything.
 **Author context:** Plan produced 2026-07-17 against colourpantry main @ fa5ded2.
 
 ---
+
+> **READ `docs/COMPETITIVE-BRIEF.md` BEFORE THIS FILE.** The brief (produced 2026-07-17, 69 agents, adversarially verified) materially contradicts parts of this plan and wins where they conflict. The three that matter:
+> 1. **Do not lead the landing page with Glaze.** Lead with the stash. The evidence is in the brief and it is not close.
+> 2. **Ship analytics in Workstream A, not F6.** There is currently zero instrumentation in the repo (verified). Every prioritisation argument below is uninstrumented guesswork until that changes.
+> 3. **Distribution is the number one constraint and this plan has no workstream for it.** See Workstream G.
 
 ## 0. Objective
 
@@ -28,7 +33,7 @@ And one strategic input: a **competitive brief** on other colour platforms (Cool
 5. **Design tokens:** all colours/fonts via `src/index.css` tokens + `tailwind.config.js` mappings. Literal Tailwind class strings only. Ironic for a colour app, but user-generated colours are runtime values: render those with inline `style={{ background: hex }}` on swatch elements only (runtime data is the sanctioned exception), never dynamic Tailwind class names.
 6. **Build flow:** app created in Base44 → linked GitHub repo (2-way sync) → cloned locally → work in Claude Code → push to `main` deploys. Pull before every edit session. Preview ≠ published; schema/RLS changes take effect on publish. Schema changes go in BOTH the MCP (`update_entity_schema`) and `base44/entities/*.jsonc`.
 7. **Auth is platform-owned.** Pre-built Login/Register/ForgotPassword/ResetPassword pages already exist; never recreate them. Register does not log in: register → OTP → `verifyOtp` → `setToken` → hard redirect via `window.location.href`.
-8. **Copy rules (house style, strict — from `voice-and-copy/copy-rules`).** Apply to every word that ships: UI, marketing, blog, errors, commits, code comments.
+8. **Copy rules (house style, strict, from `voice-and-copy/copy-rules`).** Apply to every word that ships: UI, marketing, blog, errors, commits, code comments.
    - No emojis. Anywhere. Including commit messages and comments.
    - No em dashes. Use commas, parens, colons, or split the sentence.
    - No AI-hedge phrases ("I hope this helps", "feel free to", "please let me know if", "thanks for reaching out").
@@ -107,11 +112,11 @@ S1, S2, S3 can run in parallel at kickoff. S3's output must exist before landing
 
 Built-in fields (`id`, `created_date`, `updated_date`, `created_by_id`) are automatic; never declare them. `.jsonc` files are always written whole with `write_file`.
 
-- **`Stash`** — `name` (string, req), `colors` (array of `{ hex, label? }`), `source` (enum: `manual | extract | generate | glaze | extension`), `is_public` (boolean, default false), `notes` (string). RLS: owner read/write; public read only when `is_public`. **Do not store images in the entity**; screenshots go through `UploadFile`, store `file_url`.
-- **`Feedback`** — `message` (req), `page`, `mood` (enum). RLS: creator can create/read own; admin reads all. Watch the like-via-update trap if any reaction feature is added.
-- **`ExtensionPick`** — colours captured by the Chrome extension: `hex` (req), `source_url`, `stash_id` (optional link). RLS: owner only. (Exists so the extension can write through one narrow backend function.)
-- **User profile data** — do NOT create a User entity (built-in). Onboarding answers, theme preference, CVD setting, `onboarding_completed`, `has_seen_extension_promo` persist via `base44.auth.updateMe(...)`. Handle just-registered users with none of these set.
-- **`BlogPost`** — only if decision D4 lands on entity-backed blog; otherwise blog stays as in-repo markdown.
+- **`Stash`**: `name` (string, req), `colors` (array of `{ hex, label? }`), `source` (enum: `manual | extract | generate | glaze | extension`), `is_public` (boolean, default false), `notes` (string). RLS: owner read/write; public read only when `is_public`. **Do not store images in the entity**; screenshots go through `UploadFile`, store `file_url`.
+- **`Feedback`**: `message` (req), `page`, `mood` (enum). RLS: creator can create/read own; admin reads all. Watch the like-via-update trap if any reaction feature is added.
+- **`ExtensionPick`**: colours captured by the Chrome extension: `hex` (req), `source_url`, `stash_id` (optional link). RLS: owner only. (Exists so the extension can write through one narrow backend function.)
+- **User profile data**: do NOT create a User entity (built-in). Onboarding answers, theme preference, CVD setting, `onboarding_completed`, `has_seen_extension_promo` persist via `base44.auth.updateMe(...)`. Handle just-registered users with none of these set.
+- **`BlogPost`**: only if decision D4 lands on entity-backed blog; otherwise blog stays as in-repo markdown.
 
 Schema changes always: MCP `update_entity_schema` + repo `base44/entities/*.jsonc` + publish.
 
@@ -119,14 +124,14 @@ Schema changes always: MCP `update_entity_schema` + repo `base44/entities/*.json
 
 ## 6. Workstreams and tasks
 
-### Workstream A — Platform setup and scaffold (serial, blocks everything)
+### Workstream A: Platform setup and scaffold (serial, blocks everything)
 
 - **A1.** Confirm decisions D1–D5 with Megan (section 8) if not already answered.
 - **A2.** Create the Base44 app (via MCP `create_base44_app` or dashboard), name it ColourPantry. Confirm Megan owns the app.
 - **A3.** Link the app to a NEW GitHub repo (2-way sync). Do not reuse the current `colourpantry` repo (it stays live on Vercel serving v1 until cutover; decision D1 covers repo naming).
 - **A4.** Clone locally; paste `~/.claude/base44/PROJECT-CLAUDE-SNIPPET.md` at the top of the new repo's `CLAUDE.md` (create it). Add a short project header noting v1 lives at the old repo.
 - **A5.** Run `/baseics` setup ritual. Verify preview URL loads through Claude in Chrome.
-- **A6.** Design tokens: port ColourPantry's brand palette and type scale from v1 `src/index.css` + `tailwind.config.js` into the new ones (`:root` + `.dark`), folded together with Build Bible direction (S2). This gates all UI work. **Register every brand var in `tailwind.config.js` BEFORE any visual work** — the fingerprint-pass lesson is explicit that skipping this is how The Advocate's Table ended up with ~130 inline `style={{ backgroundColor: 'var(--x)' }}`, turning every later pass into a 30-file hunt instead of a one-line change. The live v1 values to carry over: canvas `#FAF7F2` / `#0E0E0E`, surface `#FFFFFF` / `#161616`, ink `#1A1A1A` / `#FAF7F2`, line `#E8E2D5` / `#262626`, muted `#7A7468` / `#9A9A9A`, gold `#D4A574`. Gold is punctuation only (it marks arrival and achievement), never wallpaper.
+- **A6.** Design tokens: port ColourPantry's brand palette and type scale from v1 `src/index.css` + `tailwind.config.js` into the new ones (`:root` + `.dark`), folded together with Build Bible direction (S2). This gates all UI work. **Register every brand var in `tailwind.config.js` BEFORE any visual work.** The fingerprint-pass lesson is explicit that skipping this is how The Advocate's Table ended up with ~130 inline `style={{ backgroundColor: 'var(--x)' }}`, turning every later pass into a 30-file hunt instead of a one-line change. The live v1 values to carry over: canvas `#FAF7F2` / `#0E0E0E`, surface `#FFFFFF` / `#161616`, ink `#1A1A1A` / `#FAF7F2`, line `#E8E2D5` / `#262626`, muted `#7A7468` / `#9A9A9A`, gold `#D4A574`. Gold is punctuation only (it marks arrival and achievement), never wallpaper.
 - **A6b.** **Base44 fingerprint pass** (run at scaffold time, not as a later cleanup). From `lessons/base44-fingerprint-pass`:
   - Swap the stock AI-elegant type trio (Cormorant Garamond or Playfair + Inter + Caveat) off the build immediately. Playfair is a hard no. See decision D6 for what replaces it.
   - Clear scaffold residue: the Base44 favicon (port v1's `public/favicon.svg`), `name: "untitled"` in config.jsonc, and the untouched shadcn `.dark` block with purple/pink chart tokens sitting in it. That block is vibe-code colour and it ships by default.
@@ -135,8 +140,20 @@ Schema changes always: MCP `update_entity_schema` + repo `base44/entities/*.json
   - One card everywhere is a tell: give each content type its native form. Reserve the card for where the shape means something.
 - **A7.** App shell: layout route with `<Outlet>`, header, sidebar, footer (with tip jar link per D5), theme toggle, toast system (platform `<Toaster />`), route skeleton in `App.jsx` (surgical edits, preserve scaffold). Public vs. protected route split per D2.
 - **A8.** Entity schemas from section 5 created in both places. Publish once so RLS is live in preview testing.
+- **A9. Ship analytics. This is now the highest-value task in the plan and it is nearly free.** Moved up from F6 on the brief's evidence. `base44.analytics.track` is already on the platform. Instrument from the first deploy: `stash_created`, `palette_extracted`, `glaze_applied`, `onboarding_completed`, `extension_paired`, plus a page view on every tool route. No PII in properties. **Also update the Privacy page copy in the same change**, because v1's `PrivacyPage.tsx` currently promises "We do not run our own backend, analytics, or tracking scripts" and explicitly commits to updating that page if it changes. Honour that promise. Why this ranks first: the repo has zero instrumentation today (verified), so nobody knows which of the 20 tool pages anyone touches, and every feature-priority call in Workstream B is guesswork until this lands.
 
-### Workstream B — Core library + feature migration (parallelizable after A6)
+### Workstream G: Distribution (the missing workstream)
+
+The brief's blunt finding: ColourPantry is a well-crafted toolbox with no front door, and distribution outranks every feature question by an order of magnitude. This plan originally had nothing on it. It cannot ship without at least a position on:
+
+- **G1.** Acquisition. Nobody searches for a verb they do not know. The searches that exist ("recolor image palette", "colour palette generator") land on free tools with a decade of SEO. What is the actual arrival path? The blog is the only owned surface and it currently has one post in the sitemap.
+- **G2.** The sitemap is 16 URLs and omits `/glaze`. Fix the sitemap, then decide what is worth indexing at all.
+- **G3.** Retention. There is no reason to return tomorrow, no email capture, no notification surface. v2's accounts help, but an account is not a reason. (Note the wrapper limit: Base44's web wrapper does no native push. In-app inbox, email, or a digest are the options.)
+- **G4.** Monetisation reality check. Every rival is free. The closest paid analogue in the recolour space charges $2 once. Persistence is the only thing anyone in this market charges for, which points at the stash. Decide whether v2 is a business or a portfolio piece, and say so out loud, because it changes the whole plan.
+
+**This workstream has no owner and no answers yet. That is the honest status, and it is more important than anything in B or C.**
+
+### Workstream B: Core library + feature migration (parallelizable after A6)
 
 Order within B: B1 first (everything imports it), then B2–B10 in any order, roughly by user value.
 
@@ -145,17 +162,19 @@ Order within B: B1 first (everything imports it), then B2–B10 in any order, ro
 - **B3.** Stashes: list, create, edit, reorder, poster export. Reads/writes `Stash` entity via user-scoped SDK; anonymous users get localStorage drafts with a "sign in to save" nudge (per D2).
 - **B4.** Extract page (image upload + paste + palette extraction → save to stash).
 - **B5.** Generate + Variations + Harmony surfaces.
-- **B6.** Glaze: upload/paste screenshot, apply stash colours, white/black protection default, lightness weighting in flat mode. Parity with v1 commits fa5ded2 and 6181bd7 is the acceptance bar.
+- **B6.** Glaze: upload/paste screenshot, apply stash colours, white/black protection default, lightness weighting in flat mode. Parity with v1 commits fa5ded2 and 6181bd7 is the acceptance bar. **Demoted from "the signature feature" on the brief's evidence** (feature, not a wedge, not a moat, and no demand evidence). Two amendments:
+  - **Market tone mode.** Keeping the pixel's OKLab lightness and transplanting only the palette's chroma is the single thing in this whole landscape with no equivalent anywhere, and it is currently the mode the product talks about least. It is the only claim that survived both adversarial rounds.
+  - **Build the two-second proof.** A UI screenshot with a red button and a blue button at matched luminance, side by side against a gradient map: the rival's buttons collapse to the same mud colour and its whites get tinted, Glaze's stay distinct and the whites stay white. That comparison is the only frame where the advantage is perceptible without explanation. It belongs in the product, not just the marketing.
 - **B7.** Contrast checker + CVD simulation (SVG filter matrices port as-is) + hex tooltips.
 - **B8.** Visualize + Collage + Gradients.
 - **B9.** Library (curated) with pagination/lazy-load (4.5). Lookup page.
 - **B10.** Blog (per D4), Feedback (entity-backed, admin view gated on `user.role === 'admin'`), Privacy + Terms rewrite, footer tip jar.
 
-### Workstream C — Landing page + loading screen (after A6; copy blocked on S3)
+### Workstream C: Landing page + loading screen (after A6; copy blocked on S3)
 
-- **C1.** Landing page copy: positioning from the competitive brief (S3) + Build Bible voice. Sections: hero, feature showcase (lead with Glaze if S3 confirms it is genuinely differentiated, and only then), extension teaser, CTA to register. Copy rules in section 1.8 are binding: no em dashes, no emoji, no hedge, solo first-person voice, and **no fabricated stats** (no invented user counts, no "trusted by N designers"). Drop the social-proof placeholder unless there is something real to put in it. Draft with the `content-writer` agent if orchestrating multi-agent.
+- **C1.** Landing page copy: positioning from the competitive brief (S3) + Build Bible voice. **S3 has now answered the lead question: lead with the stash, not Glaze.** Read `docs/COMPETITIVE-BRIEF.md` section "Landing page implication" and its "Do not claim" list before writing a word; that list is binding and several obvious lines are factually dead. Sections: hero (the stash), feature showcase, Glaze as a one-click-deep payoff with the gradient-map comparison demo, extension teaser, CTA to register. Copy rules in section 1.8 are binding: no em dashes, no emoji, no hedge, solo first-person voice, and **no fabricated stats** (no invented user counts, no "trusted by N designers"). Drop the social-proof placeholder unless there is something real to put in it. Draft with the `content-writer` agent if orchestrating multi-agent.
 - **C2.** Landing page build: public `/` route (app home moves per D2), shadcn + framer-motion, blocks via `/component-tap`. Responsive, dark-mode aware, real copy from C1. **Marketing-site conventions from `prompts/one-cta-marketing-site`:** brand tokens in one theme block, token classes never hardcoded hex, one CTA per section, no carousels. Keep fallback content in the repo so the page renders complete before any entity has rows. Build it as a mockup first and show it (section 1.8c).
-- **C3.** **Crayon-melt loading screen.** Built and verified as an interactive mockup on 2026-07-17: https://claude.ai/code/artifact/12fb6446-6bf1-448a-b7b1-13218fbfc97e — source of truth for the behaviour. Port that, do not re-derive it. Spec:
+- **C3.** **Crayon-melt loading screen.** Built and verified as an interactive mockup on 2026-07-17: https://claude.ai/code/artifact/12fb6446-6bf1-448a-b7b1-13218fbfc97e (source of truth for the behaviour). Port that, do not re-derive it. Spec:
   - **Reference:** melted-crayon-art. Seven crayons fixed at the top, tips down, wax running down in streaks, resolving into a seven-segment ColourPantry palette strip at the bottom. The loader becomes the product's core object (a palette) rather than sitting next to it.
   - **Canvas, not SVG.** One canvas redrawn per frame. This is the `gotchas` rule (prefer canvas effects over SVG-manipulation; canvas does not fight React's reconciler) and it matters doubly here: a loader unmounts the instant loading finishes, which is exactly the SVGFollower/Chromatica crash shape (pending timer fires after unmount, touches a cleared node, `insertBefore` throws). No manual DOM, no timers holding element refs.
   - **Melt curve: `melt = progress ^ 2.2`. The exponent must be GREATER than 1.** An earlier draft of this plan said `p < 1`; that is wrong and would decelerate. `d(melt)/d(progress) = p · progress^(p-1)`, which only increases when p > 1. Verified in the mockup by pixel sampling: at 35% progress the wax is 9.5% melted, at 70% it is 45.6%, at 100% it is 100%. The second half of the load does about 90% of the melting, which is the "faster as it loads" brief. The mockup ships an exponent slider so Megan can pick the final number by feel.
@@ -167,14 +186,14 @@ Order within B: B1 first (everything imports it), then B2–B10 in any order, ro
   - **Reduced motion is a real fallback, not a disabled animation:** no drips, no per-frame melt, strip fills and the count runs. Respect `prefers-reduced-motion`.
   - Acceptance: throttled network shows the melt tracking real progress and visibly accelerating; the strip completes into a clean palette; no blank first paint; reduced-motion path still communicates position.
 
-### Workstream D — Onboarding workflow (after A7 + B3; load S4 first)
+### Workstream D: Onboarding workflow (after A7 + B3; load S4 first)
 
 - **D1.** Load `/base44-onboarding-ux`. Design a first-run wizard for verified new users: welcome → "what do you make?" (designer/dev/artist/curious) → theme + CVD preference → create-first-stash moment (pick 3 colours or extract from an image) → extension teaser (links to Workstream E install page).
 - **D2.** Persist wizard state via `auth.updateMe({ onboarding_completed: true, ... })`. Guard: layout checks the flag and routes to `/welcome` when unset. Handle brand-new users with zero saved fields.
 - **D3.** Post-register flow check: register → OTP → verifyOtp → setToken → hard redirect → onboarding fires. Do not touch the pre-built auth pages beyond visible-string styling needs, and only if required.
 - **D4.** Empty states everywhere reference onboarding actions (empty stash list → "extract your first palette").
 
-### Workstream E — Chrome extension colour picker (independent after A8; SEPARATE REPO)
+### Workstream E: Chrome extension colour picker (independent after A8; SEPARATE REPO)
 
 **Architecture constraint (why this is separate):** the Base44 frontend cannot contain extension code (whitelist, build pipeline, MV3 packaging). The extension is its own plain repo (`colourpantry-extension`), vanilla JS + MV3, built/zipped independently, published to the Chrome Web Store by Megan. It talks to ColourPantry through ONE Base44 backend function.
 
@@ -190,11 +209,11 @@ Order within B: B1 first (everything imports it), then B2–B10 in any order, ro
 - **E5.** Web app integration: picks from the extension appear in a "From your extension" tray on `/stashes` (realtime via `base44.entities.ExtensionPick.subscribe`).
 - **E6.** Store packaging: icons, screenshots, privacy policy URL (reuse app `/privacy`, updated in B10 to cover the extension), listing copy (no em dashes). Megan submits to the Web Store herself.
 
-### Workstream F — Migration, hardening, launch (after B, C, D complete; E can trail)
+### Workstream F: Migration, hardening, launch (after B, C, D complete; E can trail)
 
 - **F1.** `/base44-security-audit` (S6). Fix every world-readable/PII finding. Re-check `Stash.is_public` exposes only colours, never email/created_by-derived PII.
 - **F2.** QA pass through Claude in Chrome on the preview URL: every route, mobile viewport, dark mode, CVD filters, paste flows, poster export, onboarding end-to-end with a fresh account.
-- **F3.** v1 data import: on first login, offer "import your local stashes": read v1's IndexedDB (only works on the v1 origin) — so ship a tiny export button ON v1 (one last Vercel deploy: "Download my stashes as JSON") + import-JSON on v2. Also keep plain JSON import permanently (nice feature anyway).
+- **F3.** v1 data import: on first login, offer "import your local stashes": read v1's IndexedDB (only works on the v1 origin), so ship a tiny export button ON v1 (one last Vercel deploy: "Download my stashes as JSON") + import-JSON on v2. Also keep plain JSON import permanently (nice feature anyway).
 - **F4.** Cutover: publish the Base44 app; decide domain strategy per D1 (point colourpantry domain at Base44 app, keep Vercel v1 on a `legacy.` subdomain for 60 days with a migration banner linking the F3 export flow).
 - **F5.** SEO/meta: index.html title, OG tags, favicon (port `public/favicon.svg`), blog URLs preserved or 301-mapped.
 - **F6.** Analytics: `base44.analytics.track` on key events (`palette_extracted`, `stash_created`, `glaze_applied`, `onboarding_completed`, `extension_paired`). No PII in properties.
@@ -214,9 +233,13 @@ S3 brief ───┘        │                                          ├─
                      └─► E1..E6 extension (needs A8; E4 needs platform check) ─► trails into post-launch
 ```
 
-**Critical path:** A2→A8 → B1 → B3/B6 → D → F. 
-**Parallel lanes once A6 lands:** (B features) ∥ (C landing+loader) ∥ (E extension scaffold). 
-**Recommended phase order for a single implementation model:** S1+S2+S3 → A → B1 → B2/B3/B4/B6 (core value) → C (landing+loader) → D (onboarding) → B5/B7/B8/B9/B10 (long tail) → F → E (extension can ship 1-2 weeks post-launch without blocking anything; only the `/extension` teaser page ships at launch).
+**Critical path:** A2→A9 → B1 → B3 → D → F. (A9 is analytics. B6/Glaze is off the critical path now.)
+**Parallel lanes once A6 lands:** (B features) ∥ (C landing+loader) ∥ (E extension scaffold).
+**Recommended phase order for a single implementation model:** S1+S2+S3 → A (ending on A9, analytics) → B1 → **B3 (stashes, the product)** → B2/B4 → C (landing+loader) → D (onboarding) → B6 (Glaze) → B5/B7/B8/B9/B10 (long tail) → F → E (extension can ship 1-2 weeks post-launch; only the `/extension` teaser page ships at launch).
+
+**Reordered on the brief's evidence.** B3 (stashes) is now the priority build, not B6 (Glaze). The stash is the product, it is the direction the market walks (extraction and organisation, not application), and persistence is the only thing anyone in this market charges for. Glaze is what makes a saved stash worth having kept, which makes it a retention feature, and retention features are worthless until there is someone to retain.
+
+**Workstream G (distribution) runs alongside everything and is more important than all of it.** It has no answers yet. That is the honest status.
 
 If orchestrating multi-agent: B2–B10 are independent page builds sharing only B1 + tokens, safe to fan out; C1 goes to a content agent; S3 to a market-research agent; E is a separate-repo agent lane.
 
