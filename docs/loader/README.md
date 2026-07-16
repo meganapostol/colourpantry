@@ -1,48 +1,75 @@
 # Crayon melt loader: assets and pipeline
 
-Everything the implementation model needs to port workstream C3. Live mockup:
-https://claude.ai/code/artifact/12fb6446-6bf1-448a-b7b1-13218fbfc97e
+Live mockup: https://claude.ai/code/artifact/12fb6446-6bf1-448a-b7b1-13218fbfc97e
 
-## The idea
+**The video path won.** Two approaches were built and measured. This is the decision and the evidence.
 
-In real melted crayon art **the crayons never move**. They are glued to the canvas and only the wax runs. So there is no melt sequence to render and no frames to generate. This is:
+## The decision
 
-- **One photo** of the finished melt (`crayons.webp`)
-- The crayons drawn always, at full opacity
-- Each drip **revealed downward by a mask**, on its own stagger, driven by real load progress
+| asset | size | on the critical path? |
+|---|---|---|
+| `poster.webp` (unmelted crayons) | **46 KB** | **yes** |
+| `melt.webm` (VP9 720p, 5s) | 314 KB | no, upgrade |
+| `melt.mp4` (h264 fallback) | 248 KB | no, upgrade |
+| `superseded-mask-still.webp` | 154 KB | (old approach, blocking) |
 
-Photoreal crayons, photoreal wax, exact progress tracking, one asset. A frame sequence would have been megabytes, and a loading screen that needs a loading screen is not a loading screen.
+The video path has a **lighter first paint than the still it replaces**, and real wax on top. That is not what anyone expected going in.
+
+**Why:** unmelted crayons are mostly flat canvas, so the poster compresses to 46 KB. The finished melt is detail everywhere, so it cost 154 KB. AJ's poster-frame rule (`build-bible/lessons/video-assets-no-lag`) pays twice here: it takes the video off the critical path *and* the frame it wants is the cheap one.
+
+The old approach (one still of the finished melt, each drip revealed by a per-column mask) is kept as `superseded-mask-still.webp` plus `loader_template.html`, `drips.json` and `build_loader.py`. It works, but the drips never *form*: every shape is baked in, so there is no wet bead, no drop detaching, no pooling. It was a reveal wearing a melt costume. Do not ship it unless the video path dies on the CDN question below.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `crayons.webp` | 1600x907, 154 KB. The artwork. Generated with Gemini, watermark cropped, downscaled, q80 webp. |
-| `drips.json` | `{ boundary, cols }`. `boundary` = 0.28445, the fraction of image height where the crayon tips end. `cols` = 35 `[start, end]` x-fractions, one per detected drip, found by scanning a row 45px below the tips for non-white runs. |
-| `loader_template.html` | The mockup source. `__IMG_B64__` and `__DRIPS_JSON__` are injected at build. |
-| `build_loader.py` | Inlines the asset as a data URI and writes the standalone mockup. |
+| `poster.webp` | 1280x720, 46 KB. Frame 0 of the video: crayons, clean canvas, no wax. **This is the `poster` attribute.** It must stay frame-exact or the handover flickers. |
+| `melt.webm` | VP9, 720p, 24fps, 5s, no audio, crf 36. |
+| `melt.mp4` | h264 crf 30, `+faststart`, no audio. Fallback. |
+| `loader_video_template.html` | The mockup source. `__POSTER__`, `__WEBM__`, `__MP4__` are replaced with data URIs at build. |
+| `superseded-*`, `loader_template.html`, `drips.json`, `build_loader.py` | The mask approach. Superseded, kept for reference. |
 
-Rebuild the mockup: `python build_loader.py` (expects `crayons_q80.webp` and `drips.json` alongside it).
+## How the melt tracks loading
 
-## Asset provenance, and a trap
+`progress` is the fraction of settled boot promises (`registerBootTask(promise)`), never a timer.
 
-The first generation came back as **Crayola** crayons: wrapper text, the wave, the whole trade dress. The model ignored "no text, no lettering". That is a trademark problem on a commercial product, not a taste problem. The shipped asset was regenerated with explicitly blank wrappers and checked at full resolution.
+```
+target = progress ^ 2.2 * duration        // exponent MUST be > 1 or it decelerates
+err    = target - video.currentTime
+err > 0.02   -> play(), playbackRate = clamp(err * 3, 0.25, 4)
+err <= 0.02  -> pause()                    // caught up: wax freezes
+err < -0.15  -> seek                       // only when a human scrubs backwards
+```
 
-**If anyone regenerates this asset, check the wrappers at 100% before shipping it.** The default behaviour of every image model here is to draw Crayola, because that is what a crayon looks like in the training data.
+**playbackRate, not `currentTime`.** Seeking every frame is janky, worst on iOS Safari, and smooth seeking needs dense keyframes that inflate the file. The servo never seeks in the real loader. A stalled fetch freezes the wax mid-drip. A fast load makes it rush.
 
-Also cropped: 3.5% off the right edge to remove the Gemini sparkle watermark, 2% off the bottom.
+Verified: at 70% loaded the melt is 46% through the clip, so the last third rushes. That is the brief.
 
-## Porting notes
+## Production notes and traps
 
-- **Canvas, not SVG.** The `gotchas` page: prefer canvas over SVG manipulation. Doubly so here, because a loader unmounts the instant loading finishes, which is exactly the SVGFollower/Chromatica crash shape.
-- **Three offscreen layers**, rebuilt only on resize: `dripLayer` (the artwork, cover-fitted), `maskLayer` (per-drip columns, rebuilt per frame), `workLayer` (drip layer with `destination-in` mask applied). Then: draw crayons, draw masked drips.
-- **Melt curve `progress ^ 2.2`. Exponent must be above 1**, or it decelerates. Verified by pixel sampling: at 70% progress the wax has reached 61% down. The mockup ships a slider so the final number is Megan's call.
-- **Soft leading edge.** Each mask column fades over the last ~2.2% of height so the drip end reads wet rather than cut.
-- **Per-drip stagger and rate** come from a hash of the drip index, so they are deterministic and stable across runs. Not random noise, hand-tuned character.
-- **Paint once synchronously before the first `requestAnimationFrame`.** rAF does not fire in a hidden tab, so a loader that only paints inside rAF flashes an empty canvas. Also resync the clock on `visibilitychange`.
-- **Progress is `registerBootTask(promise)`**, settled over total. Never a timer. `shown` lerps toward `target` frame-rate-independently (`k = 1 - 0.0045^(dt/1000)`, dt clamped to 64ms) so steps ease instead of snapping and a stalled fetch visibly stalls the wax.
-- The drip columns widen 2x around their centre in the mask so soft edges and splatter are not clipped.
+- **`muted` and `playsinline` are mandatory**, or iOS silently never starts playback. `preload="auto"`.
+- **Chrome pauses video-only media in background tabs** to save power, so `play()` rejects with `AbortError`. Always `.catch()` it. The poster shows meanwhile and the servo resumes on foreground. This is correct behaviour, not a bug.
+- **Reduced motion holds the poster.** Do not play. The percentage readout still communicates position.
+- **The source is 10s at 24fps, retimed to 5s** (`setpts=0.5*PTS,fps=24`). Without `fps=24` the retime silently doubles to 48fps and roughly doubles the file. The 5s duration keeps playbackRate in a sane range instead of needing 7x on a fast load.
+- **Gemini burns a sparkle watermark into every frame.** Removed with `delogo=x=1130:y=570:w=62:h=62` and verified gone at t=0, 2 and 4.9s. Any regeneration needs the same check.
+- **Never extract to a frame sequence or sprite sheet.** This footage is the best case for interframe compression (static crayons, static canvas, thin moving drips). Extracting throws that away and costs multiples more.
 
-## Open question
+## Rebuild
 
-**Dark mode.** The artwork is a white canvas, so on a dark theme this is a bright rectangle. The mockup commits to the light artwork in both themes rather than guess at an invert that would wreck the wax colours. Needs a human look before it ships.
+```bash
+ffmpeg -i melt_src.mp4 -vf "delogo=x=1130:y=570:w=62:h=62,setpts=0.5*PTS,fps=24" \
+       -an -c:v libx264 -crf 12 -preset slow melt_master.mp4
+ffmpeg -i melt_master.mp4 -c:v libvpx-vp9 -crf 36 -b:v 0 -row-mt 1 \
+       -deadline good -cpu-used 2 -an melt.webm
+ffmpeg -i melt_master.mp4 -c:v libx264 -crf 30 -preset slow -pix_fmt yuv420p \
+       -movflags +faststart -an melt.mp4
+ffmpeg -i melt_master.mp4 -frames:v 1 -q:v 2 poster_raw.jpg    # then -> poster.webp q84
+```
+
+No system ffmpeg on this machine; `imageio_ffmpeg.get_ffmpeg_exe()` provides one.
+
+## Open, and not guessed at
+
+- **The CDN.** AJ's second rule has no Base44 answer. The platform reference is silent on whether `public/` assets or `UploadFile` are CDN-backed. Measure before shipping. The poster-frame move works regardless, which is why it leads.
+- **Dark mode.** The footage is a light canvas, so on a dark theme this is a bright rectangle. Committed to the light treatment rather than guessing at an invert that would wreck the wax colours. Needs a human look.
+- **Nobody has watched it play yet.** Verified here: the video loads (`readyState 4`), duration is 5.00s, 1280x720, the poster is set, VP9 is selected with the mp4 fallback present, and the servo math is right. Actual playback could not be observed because the preview pane keeps the tab backgrounded, which is exactly the condition that pauses video-only media.

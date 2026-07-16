@@ -1,0 +1,343 @@
+<title>ColourPantry: crayon melt loader</title>
+
+<style>
+  :root {
+    --canvas: #FAF7F2; --surface: #FFFFFF; --ink: #1A1A1A;
+    --line: #E8E2D5; --muted: #7A7468; --gold: #D4A574;
+    --sans: "Jost", "Avant Garde", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ease-house: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --canvas:#0E0E0E; --surface:#161616; --ink:#FAF7F2; --line:#262626; --muted:#9A9A9A; }
+  }
+  :root[data-theme="dark"] { --canvas:#0E0E0E; --surface:#161616; --ink:#FAF7F2; --line:#262626; --muted:#9A9A9A; }
+  :root[data-theme="light"] { --canvas:#FAF7F2; --surface:#FFFFFF; --ink:#1A1A1A; --line:#E8E2D5; --muted:#7A7468; }
+
+  * { box-sizing: border-box; }
+  .page {
+    background: var(--canvas); color: var(--ink); font-family: var(--sans);
+    letter-spacing: -0.015em; min-height: 100vh; padding: 26px 20px 56px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+  .masthead { display: flex; flex-direction: column; gap: 7px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+  .kicker { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .wordmark { font-size: 15px; font-weight: 500; letter-spacing: -0.03em; margin: 0; }
+  .lede { font-size: 15px; line-height: 1.55; color: var(--muted); margin: 0; max-width: 64ch; }
+
+  .stage {
+    position: relative; border: 1px solid var(--line); border-radius: 3px;
+    overflow: hidden; background: #A5A4A2; aspect-ratio: 16 / 9;
+  }
+  @media (max-width: 640px) { .stage { aspect-ratio: 4 / 5; } }
+  #melt { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  .readout {
+    position: absolute; left: 20px; bottom: 16px; display: flex; align-items: baseline; gap: 11px;
+    pointer-events: none; z-index: 2;
+  }
+  .pct { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px; color: #FFFFFF; letter-spacing: 0.02em; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+  .status { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.82); text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+  .badge {
+    position: absolute; right: 20px; bottom: 16px; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: #FFFFFF; text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    opacity: 0; transition: opacity 1.1s var(--ease-house); pointer-events: none; z-index: 2;
+  }
+  .badge.on { opacity: 1; }
+  .rate {
+    position: absolute; right: 20px; top: 16px; font-family: var(--mono); font-variant-numeric: tabular-nums;
+    font-size: 10.5px; letter-spacing: 0.06em; color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.45); pointer-events: none; z-index: 2;
+  }
+
+  .panel { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  @media (max-width: 720px) { .panel { grid-template-columns: 1fr; gap: 20px; } }
+  .block { display: flex; flex-direction: column; gap: 11px; }
+  .block-title { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .buttons { display: flex; gap: 7px; flex-wrap: wrap; }
+  button {
+    font-family: var(--sans); font-size: 13px; letter-spacing: -0.01em; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    padding: 8px 13px; cursor: pointer; transition: border-color 0.5s var(--ease-house);
+  }
+  button:hover { border-color: var(--muted); }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button[aria-pressed="true"] { border-color: var(--ink); }
+
+  .slider-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+  .slider-label { font-size: 13px; color: var(--muted); }
+  .slider-val { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--ink); min-width: 3.4ch; text-align: right; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; cursor: pointer; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
+  input[type="range"]::-moz-range-track { height: 1px; background: var(--line); }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); margin-top: -5.5px; border: none; }
+  input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: none; }
+  input[type="range"]:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+
+  .tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .task { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); transition: color 0.6s var(--ease-house); }
+  .task:last-child { border-bottom: none; }
+  .task.settled { color: var(--ink); }
+  .tick { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--line); justify-self: center; transition: background 0.6s var(--ease-house), border-color 0.6s var(--ease-house); }
+  .task.settled .tick { background: var(--gold); border-color: var(--gold); }
+  .task-ms { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); }
+
+  .note { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin: 0; }
+  .notes { border-top: 1px solid var(--line); padding-top: 20px; display: flex; flex-direction: column; gap: 11px; }
+  .notes h2 { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; font-weight: 400; }
+  .notes p { font-size: 14px; line-height: 1.6; color: var(--muted); margin: 0; max-width: 70ch; }
+  .notes strong { color: var(--ink); font-weight: 500; }
+  code { font-family: var(--mono); font-size: 0.88em; color: var(--ink); background: color-mix(in srgb, var(--line) 45%, transparent); padding: 1px 4px; border-radius: 2px; }
+  table.sizes { border-collapse: collapse; font-size: 13px; }
+  table.sizes td { padding: 4px 14px 4px 0; border-bottom: 1px solid var(--line); color: var(--muted); }
+  table.sizes td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }
+</style>
+
+<div class="page">
+  <div class="wrap">
+
+    <header class="masthead">
+      <p class="kicker">ColourPantry v2 / workstream C3 / video path</p>
+      <h1 class="wordmark">The crayon melt loader</h1>
+      <p class="lede">Real wax, actually melting. The poster frame (unmelted crayons, 46 KB) paints instantly, then the video takes over and upgrades it. Progress drives playbackRate rather than seeking, so a stalled fetch freezes the wax mid-drip and a fast load makes it rush. Drag the scrubber, or run a simulated boot.</p>
+    </header>
+
+    <div class="stage">
+      <video id="melt" muted playsinline preload="auto" poster="__POSTER__">
+        <source src="__WEBM__" type="video/webm">
+        <source src="__MP4__" type="video/mp4">
+      </video>
+      <div class="readout">
+        <span class="pct" id="pctOut">0%</span>
+        <span class="status" id="statusOut">Idle</span>
+      </div>
+      <div class="rate" id="rateOut">rate 0.00x</div>
+      <div class="badge" id="badge">Ready</div>
+    </div>
+
+    <div class="panel">
+      <div class="block">
+        <p class="block-title">Drive it</p>
+        <div class="buttons">
+          <button id="btnSim" type="button">Simulate boot</button>
+          <button id="btnSlow" type="button">Simulate slow 3G</button>
+          <button id="btnReset" type="button">Reset</button>
+          <button id="btnMotion" type="button" aria-pressed="false">Reduced motion</button>
+          <button id="btnPoster" type="button" aria-pressed="false">Poster only</button>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Scrub</span>
+          <input id="scrub" type="range" min="0" max="100" step="0.5" value="0" aria-label="Scrub load progress">
+          <span class="slider-val" id="scrubVal">0%</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Melt curve</span>
+          <input id="expo" type="range" min="1" max="4" step="0.1" value="2.2" aria-label="Melt curve exponent">
+          <span class="slider-val" id="expoVal">2.2</span>
+        </div>
+        <p class="note" id="curveNote">The house default. Slow start, clear rush at the end, which is the brief.</p>
+        <p class="block-title" style="margin-top:6px">What it costs</p>
+        <table class="sizes">
+          <tr><td>poster, unmelted crayons</td><td class="n">46 KB</td><td>blocking</td></tr>
+          <tr><td>melt, VP9 720p</td><td class="n">314 KB</td><td>upgrade</td></tr>
+          <tr><td>melt, h264 fallback</td><td class="n">248 KB</td><td>upgrade</td></tr>
+          <tr><td>the old still-plus-mask</td><td class="n">154 KB</td><td>blocking</td></tr>
+        </table>
+      </div>
+
+      <div class="block">
+        <p class="block-title">What the melt is actually tracking</p>
+        <ul class="tasks" id="taskList"></ul>
+        <p class="note">Progress is the fraction of these that have settled, not a timer. It drives a target position in the video; a proportional controller nudges playbackRate to chase it. The wax never seeks and never lies about how loaded the app is.</p>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h2>Notes for the build</h2>
+      <p><strong>The poster is why this works.</strong> AJ's rule: ship frame one as an image so the video loads behind it. Here it pays twice, because unmelted crayons are mostly flat canvas and compress to 46 KB, while the finished melt is detail everywhere and cost 154 KB. So the video path has a lighter first paint than the still it replaces, and real wax on top.</p>
+      <p><strong>playbackRate, not currentTime.</strong> Seeking every frame is janky, worst on iOS Safari, and smooth seeking needs dense keyframes that inflate the file. Instead: <code>err = target - currentTime</code>, then <code>playbackRate = clamp(err * 3, 0.25, 4)</code>, and pause when caught up. Loading stalls, the wax freezes mid-drip. Loading jumps, the wax rushes. Scrubbing backwards is the one case that seeks, and that only exists in this mockup.</p>
+      <p><strong>iOS autoplay.</strong> <code>muted</code> and <code>playsinline</code> are what permit playback at all. Without them it silently never starts.</p>
+      <p><strong>720p, delogo'd, retimed.</strong> Gemini burns a sparkle watermark into every frame; it is interpolated out with <code>delogo</code> and verified gone across the clip. The source was 10s at 24fps and is retimed to 5s so playbackRate stays in a sane range instead of needing 7x on a fast load.</p>
+      <p><strong>Still open: the CDN.</strong> AJ's second rule has no answer on Base44 yet. The platform reference is silent on whether public assets are CDN-backed. The poster-frame move works regardless, which is exactly why it goes first.</p>
+      <p><strong>Still open: dark mode.</strong> The footage is a light canvas, so on a dark theme this is a bright rectangle. Unresolved on purpose rather than guessed at.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var v = document.getElementById("melt");
+  var pctOut = document.getElementById("pctOut");
+  var statusOut = document.getElementById("statusOut");
+  var rateOut = document.getElementById("rateOut");
+  var badge = document.getElementById("badge");
+  var scrub = document.getElementById("scrub");
+  var scrubVal = document.getElementById("scrubVal");
+  var expo = document.getElementById("expo");
+  var expoVal = document.getElementById("expoVal");
+  var curveNote = document.getElementById("curveNote");
+  var taskListEl = document.getElementById("taskList");
+
+  var BOOT_TASKS = [
+    { label: "Checking your session", fast: 210, slow: 900 },
+    { label: "Loading your stashes", fast: 480, slow: 2100 },
+    { label: "Curated library", fast: 760, slow: 3200 },
+    { label: "Fonts", fast: 900, slow: 2600 },
+    { label: "Colour engine", fast: 1180, slow: 4100 }
+  ];
+
+  var state = {
+    target: 0, shown: 0, exponent: 2.2,
+    reduced: false, posterOnly: false,
+    settled: [], timers: [], startedAt: 0
+  };
+
+  function prefersReduced() {
+    return state.reduced ||
+      (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function buildTasks() {
+    taskListEl.innerHTML = "";
+    BOOT_TASKS.forEach(function (t, i) {
+      var li = document.createElement("li");
+      li.className = "task"; li.id = "task-" + i;
+      var tick = document.createElement("span"); tick.className = "tick";
+      var label = document.createElement("span"); label.textContent = t.label;
+      var ms = document.createElement("span"); ms.className = "task-ms"; ms.textContent = "waiting";
+      li.appendChild(tick); li.appendChild(label); li.appendChild(ms);
+      taskListEl.appendChild(li);
+    });
+    state.settled = BOOT_TASKS.map(function () { return false; });
+  }
+  buildTasks();
+
+  function clearTimers() { state.timers.forEach(clearTimeout); state.timers = []; }
+
+  function resetAll() {
+    clearTimers();
+    state.target = 0; state.shown = 0;
+    scrub.value = "0"; scrubVal.textContent = "0%";
+    badge.classList.remove("on");
+    statusOut.textContent = "Idle";
+    try { v.pause(); v.currentTime = 0; } catch (e) {}
+    buildTasks();
+  }
+
+  function simulate(slow) {
+    resetAll();
+    state.startedAt = performance.now();
+    statusOut.textContent = slow ? "Loading on slow 3G" : "Loading";
+    BOOT_TASKS.forEach(function (t, i) {
+      var id = setTimeout(function () {
+        state.settled[i] = true;
+        var li = document.getElementById("task-" + i);
+        if (li) {
+          li.classList.add("settled");
+          li.querySelector(".task-ms").textContent = Math.round(performance.now() - state.startedAt) + " ms";
+        }
+        var n = state.settled.filter(Boolean).length;
+        state.target = n / BOOT_TASKS.length;
+        scrub.value = String(state.target * 100);
+        scrubVal.textContent = Math.round(state.target * 100) + "%";
+        if (n === BOOT_TASKS.length) statusOut.textContent = "Ready";
+      }, slow ? t.slow : t.fast);
+      state.timers.push(id);
+    });
+  }
+
+  // ---- the servo: progress picks a target time, playbackRate chases it ----
+  var last = 0;
+  function frame(t) {
+    var dt = last ? Math.min(64, t - last) : 16;
+    last = t;
+
+    var diff = state.target - state.shown;
+    if (Math.abs(diff) < 0.0005) state.shown = state.target;
+    else state.shown += diff * (1 - Math.pow(0.0045, dt / 1000));
+
+    var pct = Math.round(state.shown * 100);
+    pctOut.textContent = pct + "%";
+    if (pct >= 100) badge.classList.add("on"); else badge.classList.remove("on");
+
+    var dur = (isFinite(v.duration) && v.duration > 0) ? v.duration : 5;
+    var target = Math.pow(state.shown, state.exponent) * dur;
+
+    if (state.posterOnly || prefersReduced()) {
+      if (!v.paused) v.pause();
+      rateOut.textContent = prefersReduced() ? "reduced motion: poster held" : "poster only";
+    } else {
+      var err = target - v.currentTime;
+      if (err < -0.15) {
+        // only ever happens when a human drags the scrubber backwards
+        try { v.currentTime = target; } catch (e) {}
+        if (!v.paused) v.pause();
+        rateOut.textContent = "rate 0.00x";
+      } else if (err > 0.02) {
+        if (v.paused) { var p = v.play(); if (p && p.catch) p.catch(function(){}); }
+        var rate = Math.min(4, Math.max(0.25, err * 3));
+        try { v.playbackRate = rate; } catch (e) {}
+        rateOut.textContent = "rate " + rate.toFixed(2) + "x";
+      } else {
+        if (!v.paused) v.pause();
+        rateOut.textContent = "rate 0.00x";
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  scrub.addEventListener("input", function () {
+    clearTimers();
+    state.target = Number(scrub.value) / 100;
+    scrubVal.textContent = Math.round(state.target * 100) + "%";
+    statusOut.textContent = state.target >= 1 ? "Ready" : "Scrubbing";
+    var n = Math.round(state.target * BOOT_TASKS.length);
+    for (var i = 0; i < BOOT_TASKS.length; i++) {
+      var li = document.getElementById("task-" + i);
+      if (!li) continue;
+      var on = i < n;
+      state.settled[i] = on;
+      li.classList.toggle("settled", on);
+      li.querySelector(".task-ms").textContent = on ? "settled" : "waiting";
+    }
+  });
+
+  expo.addEventListener("input", function () {
+    state.exponent = Number(expo.value);
+    expoVal.textContent = state.exponent.toFixed(1);
+    if (state.exponent <= 1.05) curveNote.textContent = "Linear. The wax moves at one speed the whole way and reads mechanical, like a progress bar wearing a costume.";
+    else if (state.exponent < 1.8) curveNote.textContent = "Gentle. It picks up at the end but you have to be looking for it.";
+    else if (state.exponent <= 2.6) curveNote.textContent = "The house default. Slow start, clear rush at the end, which is the brief.";
+    else curveNote.textContent = "Aggressive. Almost nothing happens until the last third, then it dumps. Good on a fast connection, alarming on a slow one.";
+  });
+
+  document.getElementById("btnSim").addEventListener("click", function () { simulate(false); });
+  document.getElementById("btnSlow").addEventListener("click", function () { simulate(true); });
+  document.getElementById("btnReset").addEventListener("click", resetAll);
+  var btnMotion = document.getElementById("btnMotion");
+  btnMotion.addEventListener("click", function () {
+    state.reduced = !state.reduced;
+    btnMotion.setAttribute("aria-pressed", state.reduced ? "true" : "false");
+  });
+  var btnPoster = document.getElementById("btnPoster");
+  btnPoster.addEventListener("click", function () {
+    state.posterOnly = !state.posterOnly;
+    btnPoster.setAttribute("aria-pressed", state.posterOnly ? "true" : "false");
+    if (state.posterOnly) { try { v.pause(); v.currentTime = 0; } catch (e) {} }
+  });
+
+  window.__cpState = function () {
+    return {
+      ready: v.readyState, duration: v.duration, currentTime: v.currentTime,
+      paused: v.paused, rate: v.playbackRate, shown: state.shown, target: state.target
+    };
+  };
+  window.__cpSet = function (p) { state.target = p; state.shown = p; return true; };
+})();
+</script>
