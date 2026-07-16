@@ -1,0 +1,530 @@
+<title>ColourPantry: crayon melt loader</title>
+
+<style>
+  :root {
+    --canvas: #FAF7F2;
+    --surface: #FFFFFF;
+    --ink: #1A1A1A;
+    --line: #E8E2D5;
+    --muted: #7A7468;
+    --gold: #D4A574;
+    --sans: "Jost", "Avant Garde", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ease-house: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --canvas:#0E0E0E; --surface:#161616; --ink:#FAF7F2; --line:#262626; --muted:#9A9A9A; }
+  }
+  :root[data-theme="dark"] { --canvas:#0E0E0E; --surface:#161616; --ink:#FAF7F2; --line:#262626; --muted:#9A9A9A; }
+  :root[data-theme="light"] { --canvas:#FAF7F2; --surface:#FFFFFF; --ink:#1A1A1A; --line:#E8E2D5; --muted:#7A7468; }
+
+  * { box-sizing: border-box; }
+
+  .page {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--sans);
+    letter-spacing: -0.015em;
+    min-height: 100vh;
+    padding: 26px 20px 56px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+  .masthead {
+    display: flex; flex-direction: column; gap: 7px;
+    padding-bottom: 18px; border-bottom: 1px solid var(--line);
+  }
+  .kicker {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin: 0;
+  }
+  .wordmark { font-size: 15px; font-weight: 500; letter-spacing: -0.03em; margin: 0; }
+  .lede { font-size: 15px; line-height: 1.55; color: var(--muted); margin: 0; max-width: 64ch; }
+
+  /* ---- the loader stage: this is the whole screen in the real app ---- */
+  .stage {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+    background: #FFFFFF;
+    aspect-ratio: 16 / 9;
+  }
+  @media (max-width: 640px) { .stage { aspect-ratio: 4 / 5; } }
+
+  #stageCanvas { display: block; width: 100%; height: 100%; }
+
+  .readout {
+    position: absolute; left: 20px; bottom: 16px;
+    display: flex; align-items: baseline; gap: 11px;
+    pointer-events: none; z-index: 2;
+    mix-blend-mode: multiply;
+  }
+  .pct {
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
+    font-size: 12px; color: #1A1A1A; letter-spacing: 0.02em;
+  }
+  .status {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #7A7468;
+  }
+  .done-badge {
+    position: absolute; right: 20px; bottom: 16px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #8A661B;
+    opacity: 0; transition: opacity 1.1s var(--ease-house);
+    pointer-events: none; z-index: 2;
+  }
+  .done-badge.on { opacity: 1; }
+
+  /* ---- controls ---- */
+  .panel { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  @media (max-width: 720px) { .panel { grid-template-columns: 1fr; gap: 20px; } }
+  .block { display: flex; flex-direction: column; gap: 11px; }
+  .block-title {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin: 0;
+  }
+  .buttons { display: flex; gap: 7px; flex-wrap: wrap; }
+  button {
+    font-family: var(--sans); font-size: 13px; letter-spacing: -0.01em;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 3px;
+    padding: 8px 13px; cursor: pointer;
+    transition: border-color 0.5s var(--ease-house);
+  }
+  button:hover { border-color: var(--muted); }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button[aria-pressed="true"] { border-color: var(--ink); }
+
+  .slider-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+  .slider-label { font-size: 13px; color: var(--muted); }
+  .slider-val {
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
+    font-size: 12px; color: var(--ink); min-width: 3.4ch; text-align: right;
+  }
+  input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; cursor: pointer; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
+  input[type="range"]::-moz-range-track { height: 1px; background: var(--line); }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--ink); margin-top: -5.5px; border: none;
+  }
+  input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: none; }
+  input[type="range"]:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+
+  .tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .task {
+    display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--line);
+    font-size: 13px; color: var(--muted);
+    transition: color 0.6s var(--ease-house);
+  }
+  .task:last-child { border-bottom: none; }
+  .task.settled { color: var(--ink); }
+  .tick {
+    width: 6px; height: 6px; border-radius: 50%;
+    border: 1px solid var(--line); justify-self: center;
+    transition: background 0.6s var(--ease-house), border-color 0.6s var(--ease-house);
+  }
+  .task.settled .tick { background: var(--gold); border-color: var(--gold); }
+  .task-ms { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); }
+
+  .curve-holder { border: 1px solid var(--line); border-radius: 3px; background: var(--surface); padding: 9px; }
+  #curveCanvas { display: block; width: 100%; height: 104px; }
+  .note { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin: 0; }
+
+  .notes { border-top: 1px solid var(--line); padding-top: 20px; display: flex; flex-direction: column; gap: 11px; }
+  .notes h2 {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin: 0; font-weight: 400;
+  }
+  .notes p { font-size: 14px; line-height: 1.6; color: var(--muted); margin: 0; max-width: 70ch; }
+  .notes strong { color: var(--ink); font-weight: 500; }
+  code {
+    font-family: var(--mono); font-size: 0.88em; color: var(--ink);
+    background: color-mix(in srgb, var(--line) 45%, transparent);
+    padding: 1px 4px; border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }
+</style>
+
+<div class="page">
+  <div class="wrap">
+
+    <header class="masthead">
+      <p class="kicker">ColourPantry v2 / workstream C3</p>
+      <h1 class="wordmark">The crayon melt loader</h1>
+      <p class="lede">Real crayons, real wax. The crayons never move, because in actual melted crayon art they are glued to the canvas and only the wax runs. Each drip grows on its own timing and the whole thing speeds up as the app loads. Drag the scrubber, or run a simulated boot.</p>
+    </header>
+
+    <div class="stage">
+      <canvas id="stageCanvas"></canvas>
+      <div class="readout">
+        <span class="pct" id="pctOut">0%</span>
+        <span class="status" id="statusOut">Idle</span>
+      </div>
+      <div class="done-badge" id="doneBadge">Ready</div>
+    </div>
+
+    <div class="panel">
+      <div class="block">
+        <p class="block-title">Drive it</p>
+        <div class="buttons">
+          <button id="btnSim" type="button">Simulate boot</button>
+          <button id="btnSlow" type="button">Simulate slow 3G</button>
+          <button id="btnReset" type="button">Reset</button>
+          <button id="btnMotion" type="button" aria-pressed="false">Reduced motion</button>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Scrub</span>
+          <input id="scrub" type="range" min="0" max="100" step="0.5" value="0" aria-label="Scrub load progress">
+          <span class="slider-val" id="scrubVal">0%</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Melt curve</span>
+          <input id="expo" type="range" min="1" max="4" step="0.1" value="2.2" aria-label="Melt curve exponent">
+          <span class="slider-val" id="expoVal">2.2</span>
+        </div>
+        <div class="curve-holder"><canvas id="curveCanvas"></canvas></div>
+        <p class="note" id="curveNote">Melt against progress. Above 1.0 the wax starts slow and rushes at the end, which is the brief. At 1.0 it is linear and reads mechanical.</p>
+      </div>
+
+      <div class="block">
+        <p class="block-title">What the melt is actually tracking</p>
+        <ul class="tasks" id="taskList"></ul>
+        <p class="note">Progress is the fraction of these that have settled, not a timer. The wax eases toward each step instead of snapping, so a slow entity fetch stalls the drips where a fake timer would sail past it.</p>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h2>Notes for the build</h2>
+      <p><strong>One image, not thirty frames.</strong> In real melted crayon art the crayons stay glued at the top and only the wax runs, so there is no melt sequence to render. This is a single photo of the finished melt with each drip revealed downward by a mask. Photoreal crayons, photoreal wax, exact progress tracking, and one asset. A loader that needs megabytes of frames before it can show you anything is a loader that needs a loader.</p>
+      <p><strong>Unbranded on purpose.</strong> The first generation came back as Crayola crayons, logo and all. That is a trademark problem on a commercial product, not a taste one. These wrappers are blank.</p>
+      <p><strong>Canvas, not SVG.</strong> One canvas redrawn per frame. Your gotchas page has the SVGFollower crash from Chromatica: manual DOM on a timer, unmounted component, <code>insertBefore</code> throw. A loader unmounts the moment loading finishes, which is exactly that trap.</p>
+      <p><strong>Real progress, not a timer.</strong> <code>registerBootTask(promise)</code> collects the boot promises and progress is settled over total. The wax cannot lie about how loaded the app is.</p>
+      <p><strong>Open question: dark mode.</strong> The artwork is a white canvas, so on a dark theme this is a bright rectangle. I have left it committed to the light artwork rather than guess at an invert that would wreck the wax colours. Worth a look on your phone in dark mode before we decide.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DRIPS = __DRIPS_JSON__;
+  var IMG_SRC = "data:image/webp;base64,__IMG_B64__";
+
+  var BOOT_TASKS = [
+    { label: "Checking your session", fast: 210, slow: 900 },
+    { label: "Loading your stashes", fast: 480, slow: 2100 },
+    { label: "Curated library", fast: 760, slow: 3200 },
+    { label: "Fonts", fast: 900, slow: 2600 },
+    { label: "Colour engine", fast: 1180, slow: 4100 }
+  ];
+
+  var stage = document.getElementById("stageCanvas");
+  var sctx = stage.getContext("2d");
+  var curve = document.getElementById("curveCanvas");
+  var cctx = curve.getContext("2d");
+
+  var pctOut = document.getElementById("pctOut");
+  var statusOut = document.getElementById("statusOut");
+  var doneBadge = document.getElementById("doneBadge");
+  var scrub = document.getElementById("scrub");
+  var scrubVal = document.getElementById("scrubVal");
+  var expo = document.getElementById("expo");
+  var expoVal = document.getElementById("expoVal");
+  var curveNote = document.getElementById("curveNote");
+  var taskListEl = document.getElementById("taskList");
+
+  var tokens = {};
+  function readTokens() {
+    var cs = getComputedStyle(document.documentElement);
+    tokens = {
+      ink: cs.getPropertyValue("--ink").trim() || "#1A1A1A",
+      line: cs.getPropertyValue("--line").trim() || "#E8E2D5",
+      gold: cs.getPropertyValue("--gold").trim() || "#D4A574"
+    };
+  }
+  readTokens();
+
+  // deterministic per-drip character. Hand-tuned feel, not noise: a drip's
+  // stagger and rate come from its own x position so it is stable every run.
+  function hash01(n) {
+    var x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  var DRIP_META = DRIPS.cols.map(function (c, i) {
+    var h1 = hash01(i + 1), h2 = hash01(i + 51);
+    return {
+      x0: c[0], x1: c[1],
+      stagger: h1 * 0.20,          // 0 to 0.20: some drips start later
+      rate: 0.86 + h2 * 0.28       // 0.86 to 1.14: some run faster
+    };
+  });
+
+  var state = {
+    target: 0, shown: 0, exponent: 2.2,
+    reduced: false, settled: [], timers: [], startedAt: 0
+  };
+
+  function prefersReduced() {
+    return state.reduced ||
+      (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function buildTasks() {
+    taskListEl.innerHTML = "";
+    BOOT_TASKS.forEach(function (t, i) {
+      var li = document.createElement("li");
+      li.className = "task"; li.id = "task-" + i;
+      var tick = document.createElement("span"); tick.className = "tick";
+      var label = document.createElement("span"); label.textContent = t.label;
+      var ms = document.createElement("span"); ms.className = "task-ms"; ms.textContent = "waiting";
+      li.appendChild(tick); li.appendChild(label); li.appendChild(ms);
+      taskListEl.appendChild(li);
+    });
+    state.settled = BOOT_TASKS.map(function () { return false; });
+  }
+  buildTasks();
+
+  function clearTimers() { state.timers.forEach(clearTimeout); state.timers = []; }
+
+  function resetAll() {
+    clearTimers();
+    state.target = 0; state.shown = 0;
+    scrub.value = "0"; scrubVal.textContent = "0%";
+    doneBadge.classList.remove("on");
+    statusOut.textContent = "Idle";
+    buildTasks();
+  }
+
+  function simulate(slow) {
+    resetAll();
+    state.startedAt = performance.now();
+    statusOut.textContent = slow ? "Loading on slow 3G" : "Loading";
+    BOOT_TASKS.forEach(function (t, i) {
+      var id = setTimeout(function () {
+        state.settled[i] = true;
+        var li = document.getElementById("task-" + i);
+        if (li) {
+          li.classList.add("settled");
+          li.querySelector(".task-ms").textContent = Math.round(performance.now() - state.startedAt) + " ms";
+        }
+        var n = state.settled.filter(Boolean).length;
+        state.target = n / BOOT_TASKS.length;
+        scrub.value = String(state.target * 100);
+        scrubVal.textContent = Math.round(state.target * 100) + "%";
+        if (n === BOOT_TASKS.length) statusOut.textContent = "Ready";
+      }, slow ? t.slow : t.fast);
+      state.timers.push(id);
+    });
+  }
+
+  function meltFor(meta, p) {
+    var local = (p - meta.stagger) / (1 - meta.stagger);
+    if (local <= 0) return 0;
+    if (local > 1) local = 1;
+    var eased = Math.pow(local, state.exponent) * meta.rate;
+    return eased > 1 ? 1 : eased;
+  }
+
+  // ---- image + offscreen layers ----
+  var img = new Image();
+  var ready = false;
+  var dripLayer = document.createElement("canvas");
+  var maskLayer = document.createElement("canvas");
+  var workLayer = document.createElement("canvas");
+  var layout = null;
+
+  function buildLayers(w, h) {
+    // cover-fit the artwork into the stage
+    var ar = img.width / img.height;
+    var sw, sh, sx, sy;
+    if (w / h > ar) { sw = img.width; sh = img.width / (w / h); sx = 0; sy = (img.height - sh) * 0.5; }
+    else { sh = img.height; sw = img.height * (w / h); sy = 0; sx = (img.width - sw) * 0.5; }
+
+    var boundaryY = h * DRIPS.boundary * (img.height / sh);
+    if (boundaryY > h) boundaryY = h * DRIPS.boundary;
+
+    [dripLayer, maskLayer, workLayer].forEach(function (c) { c.width = w; c.height = h; });
+
+    var dctx = dripLayer.getContext("2d");
+    dctx.clearRect(0, 0, w, h);
+    dctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+
+    layout = { sx: sx, sy: sy, sw: sw, sh: sh, boundaryY: h * DRIPS.boundary, w: w, h: h };
+  }
+
+  function drawStage() {
+    var rect = stage.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(1, Math.round(rect.width));
+    var h = Math.max(1, Math.round(rect.height));
+    if (stage.width !== w * dpr || stage.height !== h * dpr) {
+      stage.width = w * dpr; stage.height = h * dpr;
+      if (ready) buildLayers(w, h);
+    }
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sctx.clearRect(0, 0, w, h);
+    sctx.fillStyle = "#FFFFFF";
+    sctx.fillRect(0, 0, w, h);
+
+    if (!ready) { updateReadout(); return; }
+    if (!layout || layout.w !== w || layout.h !== h) buildLayers(w, h);
+
+    var p = state.shown;
+    var by = layout.boundaryY;
+    var dripH = h - by;
+
+    // 1. the crayons, always fully present
+    sctx.drawImage(dripLayer, 0, 0, w, by, 0, 0, w, by);
+
+    // 2. the mask: one soft-ended column per detected drip
+    var mctx = maskLayer.getContext("2d");
+    mctx.clearRect(0, 0, w, h);
+    var fade = Math.max(6, h * 0.022);
+    for (var i = 0; i < DRIP_META.length; i++) {
+      var m = DRIP_META[i];
+      var reveal = meltFor(m, p) * dripH;
+      if (reveal <= 0.5) continue;
+      var x = m.x0 * w, cw = (m.x1 - m.x0) * w;
+      // widen slightly so a drip's soft edges and splatter are not clipped
+      x -= cw * 0.5; cw *= 2.0;
+      var solid = Math.max(0, reveal - fade);
+      mctx.fillStyle = "#000";
+      mctx.fillRect(x, by, cw, solid);
+      var g = mctx.createLinearGradient(0, by + solid, 0, by + reveal);
+      g.addColorStop(0, "rgba(0,0,0,1)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      mctx.fillStyle = g;
+      mctx.fillRect(x, by + solid, cw, reveal - solid);
+    }
+
+    // 3. drips masked in, composited over the canvas
+    var wctx = workLayer.getContext("2d");
+    wctx.setTransform(1, 0, 0, 1, 0, 0);
+    wctx.clearRect(0, 0, w, h);
+    wctx.globalCompositeOperation = "source-over";
+    wctx.drawImage(dripLayer, 0, 0);
+    wctx.globalCompositeOperation = "destination-in";
+    wctx.drawImage(maskLayer, 0, 0);
+    wctx.globalCompositeOperation = "source-over";
+
+    sctx.drawImage(workLayer, 0, by, w, dripH, 0, by, w, dripH);
+
+    updateReadout();
+  }
+
+  function updateReadout() {
+    var n = Math.round(state.shown * 100);
+    pctOut.textContent = n + "%";
+    if (n >= 100) doneBadge.classList.add("on"); else doneBadge.classList.remove("on");
+  }
+
+  function drawCurve() {
+    var rect = curve.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height));
+    if (curve.width !== w * dpr || curve.height !== h * dpr) { curve.width = w * dpr; curve.height = h * dpr; }
+    cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cctx.clearRect(0, 0, w, h);
+    var pad = 8, gw = w - pad * 2, gh = h - pad * 2;
+    cctx.strokeStyle = tokens.line; cctx.lineWidth = 1;
+    cctx.setLineDash([2, 3]);
+    cctx.beginPath(); cctx.moveTo(pad, pad + gh); cctx.lineTo(pad + gw, pad); cctx.stroke();
+    cctx.setLineDash([]);
+    cctx.strokeStyle = tokens.ink; cctx.lineWidth = 1.5;
+    cctx.beginPath();
+    for (var s = 0; s <= 60; s++) {
+      var x = s / 60, y = Math.pow(x, state.exponent);
+      var px = pad + x * gw, py = pad + gh - y * gh;
+      if (s === 0) cctx.moveTo(px, py); else cctx.lineTo(px, py);
+    }
+    cctx.stroke();
+    var lx = state.shown, ly = Math.pow(lx, state.exponent);
+    cctx.fillStyle = tokens.gold;
+    cctx.beginPath(); cctx.arc(pad + lx * gw, pad + gh - ly * gh, 3.5, 0, Math.PI * 2); cctx.fill();
+  }
+
+  var last = 0;
+  function frame(t) {
+    var dt = last ? Math.min(64, t - last) : 16;
+    last = t;
+    var diff = state.target - state.shown;
+    if (Math.abs(diff) < 0.0005) state.shown = state.target;
+    else if (prefersReduced()) state.shown = state.target;
+    else state.shown += diff * (1 - Math.pow(0.0045, dt / 1000));
+    drawStage();
+    drawCurve();
+    requestAnimationFrame(frame);
+  }
+
+  img.onload = function () {
+    ready = true;
+    var rect = stage.getBoundingClientRect();
+    buildLayers(Math.max(1, Math.round(rect.width)), Math.max(1, Math.round(rect.height)));
+    drawStage();
+  };
+  img.src = IMG_SRC;
+
+  // paint once synchronously; rAF does not fire in a hidden tab and a loader
+  // that waits for its first frame can flash an empty canvas
+  drawStage();
+  drawCurve();
+  requestAnimationFrame(frame);
+
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) { last = 0; drawStage(); drawCurve(); }
+  });
+
+  scrub.addEventListener("input", function () {
+    clearTimers();
+    state.target = Number(scrub.value) / 100;
+    scrubVal.textContent = Math.round(state.target * 100) + "%";
+    statusOut.textContent = state.target >= 1 ? "Ready" : "Scrubbing";
+    var n = Math.round(state.target * BOOT_TASKS.length);
+    for (var i = 0; i < BOOT_TASKS.length; i++) {
+      var li = document.getElementById("task-" + i);
+      if (!li) continue;
+      var on = i < n;
+      state.settled[i] = on;
+      li.classList.toggle("settled", on);
+      li.querySelector(".task-ms").textContent = on ? "settled" : "waiting";
+    }
+  });
+
+  expo.addEventListener("input", function () {
+    state.exponent = Number(expo.value);
+    expoVal.textContent = state.exponent.toFixed(1);
+    if (state.exponent <= 1.05) curveNote.textContent = "Linear. The wax moves at one speed the whole way and reads mechanical, like a progress bar wearing a costume.";
+    else if (state.exponent < 1.8) curveNote.textContent = "Gentle. It picks up at the end but you have to be looking for it.";
+    else if (state.exponent <= 2.6) curveNote.textContent = "The house default. Slow start, clear rush at the end, which is the brief.";
+    else curveNote.textContent = "Aggressive. Almost nothing happens until the last third, then it dumps. Good on a fast connection, alarming on a slow one.";
+  });
+
+  document.getElementById("btnSim").addEventListener("click", function () { simulate(false); });
+  document.getElementById("btnSlow").addEventListener("click", function () { simulate(true); });
+  document.getElementById("btnReset").addEventListener("click", resetAll);
+  var btnMotion = document.getElementById("btnMotion");
+  btnMotion.addEventListener("click", function () {
+    state.reduced = !state.reduced;
+    btnMotion.setAttribute("aria-pressed", state.reduced ? "true" : "false");
+  });
+
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", readTokens);
+  }
+  new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  window.__cpRender = function (p) {
+    state.target = p; state.shown = p;
+    drawStage(); drawCurve();
+    return ready;
+  };
+})();
+</script>
