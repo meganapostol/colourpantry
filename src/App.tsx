@@ -4,6 +4,7 @@ import { ThemeProvider } from "./state/ThemeContext";
 import { StashProvider } from "./state/StashContext";
 import { CVDProvider, useCVD } from "./state/CVDContext";
 import { CVDFilter } from "./components/CVDFilter";
+import { Backdrop } from "./components/Backdrop";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Toast } from "./components/Toast";
@@ -84,6 +85,7 @@ export default function App() {
           <BrowserRouter>
             <CVDFilter />
             <div className="h-screen flex flex-col bg-canvas-light dark:bg-canvas-dark text-ink-light dark:text-ink-dark">
+              <Backdrop />
               <Header />
               <CVDFilteredContent />
               <Toast />

@@ -1,5 +1,36 @@
 # Crayon melt loader: assets and pipeline
 
+## Melt v2: the wax is not wax enough (2026-07-18)
+
+Megan's verdict on the shipped footage: too 2D, reads clip-art, the drips do
+not behave like liquid. Three routes forward, one built:
+
+1. **Procedural shader (built, the challenger).** `/melt-lab.html` on any
+   deploy renders the incumbent video and a live WebGL melt side by side from
+   one scrubber. Signed-distance drips shaded as height fields: specular
+   beads with surface tension, droplets that detach, fall and pool as flat
+   mounds, crayons that shorten as they are consumed. ~10 KB of code instead
+   of 320 KB of video, themes itself, and progress drives the sim directly,
+   so a stalled load freezes the wax honestly with no playbackRate servo.
+2. **Regenerate the footage.** The clip-art look is a lighting problem. Any
+   regen prompt must demand: macro lens, hard specular highlights on molten
+   wax, visible surface tension beads that swell before dropping, soft
+   contact shadows, shallow depth of field. Frame 0 must stay clean and
+   unmelted or the 46 KB poster rule dies. Suggested prompt: "Macro
+   photograph, locked-off camera: a neat row of ten wax crayons mounted
+   tips-down on warm white artist canvas, lit by a softbox upper-left. The
+   crayons melt slowly. Glossy molten wax beads swell at each tip with
+   visible surface tension, then slide down leaving glistening trails;
+   droplets occasionally detach and fall, pooling below. Sharp specular
+   highlights on wet wax, soft contact shadows, shallow depth of field,
+   photorealistic, no text." Then the existing ffmpeg pipeline (delogo,
+   retime, poster) applies unchanged.
+3. **Shoot it for real.** Crayons glued to canvas, heat gun, phone on a
+   tripod, one take of ~10s. Beats every model at looking real because it is.
+   Same pipeline afterwards.
+
+The video below stays wired in the app until a challenger wins on looks.
+
 Live mockup: https://claude.ai/code/artifact/12fb6446-6bf1-448a-b7b1-13218fbfc97e
 
 **The video path won.** Two approaches were built and measured. This is the decision and the evidence.

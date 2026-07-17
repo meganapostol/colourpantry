@@ -22,8 +22,17 @@ export function HomePage() {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-6 gap-2 min-h-0">
+      <div
+        className="flex-1 grid grid-cols-6 gap-2 min-h-0"
+        onMouseLeave={() =>
+          window.dispatchEvent(new CustomEvent<string | null>("cp:bloom", { detail: null }))
+        }
+      >
         {HUE_FAMILIES.map((f) => {
+          const bloom = () =>
+            window.dispatchEvent(
+              new CustomEvent<string | null>("cp:bloom", { detail: f.representativeHex }),
+            );
           const ink = readableTextOn(f.representativeHex);
           return (
             <Link
@@ -32,6 +41,11 @@ export function HomePage() {
               className="group relative block rounded-md overflow-hidden lift-hover h-full w-full"
               style={{ background: f.representativeHex }}
               aria-label={`Open ${f.name} family`}
+              onMouseEnter={bloom}
+              onFocus={bloom}
+              onBlur={() =>
+                window.dispatchEvent(new CustomEvent<string | null>("cp:bloom", { detail: null }))
+              }
             >
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"

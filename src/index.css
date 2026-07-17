@@ -27,6 +27,23 @@ body {
   letter-spacing: -0.005em;
 }
 
+/* Ambient desk-lamp glow that follows the cursor. Luminance only — it must
+   never add chroma, because people judge colours on this site. */
+.backdrop-lamp {
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 243, 224, 0.38),
+    rgba(255, 243, 224, 0) 70%
+  );
+}
+.dark .backdrop-lamp {
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 240, 220, 0.05),
+    rgba(255, 240, 220, 0) 70%
+  );
+}
+
 /* Subtle paper grain on light, void on dark */
 .canvas-grain {
   background-image:
