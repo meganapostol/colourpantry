@@ -126,19 +126,33 @@ Only if Megan judges the canvas wax still too flat after Phase 1:
 
 ## Phase 4 — motion menu on v2 (post-contest backlog, in order)
 
-1. **Wax bursts on stash-add/copy** — through **the one shared particle
+1. **The logo trick (Megan's ask, 2026-07-18).** The wordmark sits **plain**
+   at rest — ink colour, matching theme, no rainbow. On mouseover it comes
+   alive: a **multicolour confetti burst** fires from the logo (through the
+   one shared particle engine's `confettiBurst()` lane — never a second
+   system), and **colour shifts through the letters**: each letter takes a
+   hue offset by its index and the hues rotate while hovered, so a wave of
+   colour travels through "colour pantry". On mouse leave the letters ease
+   back to plain ink. Details: keyboard focus triggers it too; on touch, a
+   tap fires the same burst once; rate-limit the burst (~once per 2 s, same
+   as the Saffron rule) so hover-jitter can't spam particles; reduced motion
+   gets no confetti and a static colourized wordmark instead of the cycling
+   wave, so the joke survives with the motion off. Note for the port: the v1
+   header renders the letters permanently rainbow — plain-at-rest is a
+   deliberate change of the resting state, not an accident.
+2. **Wax bursts on stash-add/copy** — through **the one shared particle
    engine** (SHARKTANK-PLAN section 4) via the existing `confettiBurst()`
    lane. Never a second particle system — standing rule. Reduced motion
    already no-ops bursts there.
-2. **Fly-to-stash chip** — FLIP animation from cell rect to the stash UI;
+3. **Fly-to-stash chip** — FLIP animation from cell rect to the stash UI;
    teaches where the stash lives.
-3. **View Transitions API route morphs** — family card colour expands into
+4. **View Transitions API route morphs** — family card colour expands into
    the family view. Progressive enhancement, no-op where unsupported, no new
    packages (framer-motion is whitelisted if ever genuinely needed).
-4. **Home grid stagger-in** — coordinate with the "all 24 cubes in one look"
+5. **Home grid stagger-in** — coordinate with the "all 24 cubes in one look"
    fit work that just landed; CSS delays only.
-5. **Melting hover on family cards** — pseudo-element drips in card colour.
-6. All of it behind one shared `prefers-reduced-motion` kill switch.
+6. **Melting hover on family cards** — pseudo-element drips in card colour.
+7. All of it behind one shared `prefers-reduced-motion` kill switch.
 
 ## Orchestration shape
 
