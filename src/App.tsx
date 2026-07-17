@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./state/ThemeContext";
 import { StashProvider } from "./state/StashContext";
@@ -72,6 +73,10 @@ function CVDFilteredContent() {
 }
 
 export default function App() {
+  useEffect(() => {
+    window.__cpBootSettle?.("app");
+  }, []);
+
   return (
     <ThemeProvider>
       <CVDProvider>

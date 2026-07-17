@@ -73,6 +73,7 @@ export function StashProvider({ children }: { children: ReactNode }) {
         if (logo && !cancelled) setCustomLogoState(logo);
       } finally {
         if (!cancelled) setHydrated(true);
+        window.__cpBootSettle?.("stash");
       }
     })();
     return () => {
