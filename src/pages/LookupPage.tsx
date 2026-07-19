@@ -123,13 +123,11 @@ function findSeasonalMatches(target: string): Record<Season, SeasonalMatch[]> {
 
 export function LookupPage() {
   const { addSwatch, addManySwatches, showToast } = useStash();
-  // The page opens on the default photo with its hoodie orange already picked;
-  // both defaults must agree or the swatch lies about the image.
-  const [input, setInput] = useState("#D9783C");
-  const [hex, setHex] = useState("#D9783C");
+  const [input, setInput] = useState("#D4A574");
+  const [hex, setHex] = useState("#D4A574");
   const [harmony, setHarmony] = useState<HarmonyRule>("monochromatic");
   const [seasonTab, setSeasonTab] = useState<Season>("autumn");
-  const [pickerImage, setPickerImage] = useState<string | null>("/taste-default.webp");
+  const [pickerImage, setPickerImage] = useState<string | null>(null);
   const [magnifier, setMagnifier] = useState<{
     x: number;
     y: number;
